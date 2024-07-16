@@ -73,6 +73,7 @@ class CollectSequencesFromJob(pyblish.api.ContextPlugin):
     current working directory is searched for file sequences.
 
     """
+
     order = pyblish.api.CollectorOrder
     targets = ["rr_control"]
     label = "Collect Rendered Frames"
@@ -80,6 +81,9 @@ class CollectSequencesFromJob(pyblish.api.ContextPlugin):
     review = True
 
     def process(self, context):
+        self.review = context.data["project_settings"]["royalrender"][
+            "publish"
+        ]["CollectSequencesFromJob"]["review"]
 
         self.review = (
             context.data
@@ -90,10 +94,8 @@ class CollectSequencesFromJob(pyblish.api.ContextPlugin):
             ["review"]
         )
 
-        publish_data_paths = (
-            os.environ.get("AYON_PUBLISH_DATA")
-            or os.environ.get("OPENPYPE_PUBLISH_DATA")
-        )
+        publish_data_paths = os.environ.get("AYON_PUBLISH_DATA")
+
         if publish_data_paths:
             self.log.debug(publish_data_paths)
             paths = publish_data_paths.split(os.pathsep)

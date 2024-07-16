@@ -27,8 +27,12 @@ class SubmitJobsToRoyalRender(pyblish.api.ContextPlugin):
 
         # iterate over all instances and try to find RRJobs
         jobs = []
+        auto_delete = False
         instance_rr_path = None
         for instance in context:
+            if not instance.data.get("farm"):
+                self.log.info("Skipping local instance.")
+                continue
             if isinstance(instance.data.get("rrJob"), RRJob):
                 jobs.append(instance.data.get("rrJob"))
             if instance.data.get("rrJobs"):
@@ -38,6 +42,10 @@ class SubmitJobsToRoyalRender(pyblish.api.ContextPlugin):
                     jobs += instance.data.get("rrJobs")
             if instance.data.get("rr_root"):
                 instance_rr_path = instance.data["rr_root"]
+            if instance.data.get("auto_delete"):
+                #GlobalSubmissionParameter
+                auto_delete=instance.data["auto_delete"]
+
 
         if jobs:
             self._rr_root = instance_rr_path
@@ -46,7 +54,7 @@ class SubmitJobsToRoyalRender(pyblish.api.ContextPlugin):
                     ("Missing RoyalRender root. "
                      "You need to configure RoyalRender module."))
             self._rr_api = rrApi(self._rr_root)
-            self._submission_parameters = self.get_submission_parameters()
+            self._submission_parameters = self.get_submission_parameters(auto_delete)
             self.process_submission(jobs)
             return
 
@@ -60,6 +68,9 @@ class SubmitJobsToRoyalRender(pyblish.api.ContextPlugin):
             job.PreID = idx_pre_id
             if idx_pre_id > 0:
                 job.WaitForPreIDs.append(idx_pre_id - 1)
+		        # adjust rr pre id for publish job
+                if job.SceneName.endswith("metadata.json"):
+                    idx_pre_id =+ 10
             idx_pre_id += 1
 
         submission = rrApi.create_submission(
@@ -87,5 +98,14 @@ class SubmitJobsToRoyalRender(pyblish.api.ContextPlugin):
 
         return temp.name
 
-    def get_submission_parameters(self):
-        return [SubmitterParameter("RequiredMemory", "0")]
+    def get_submission_parameters(self, auto_delete):
+        if auto_delete:
+            return [
+                SubmitterParameter("RequiredMemory", "0"),
+		        SubmitterParameter("PPAyoninjectenvvar", "1~1"),
+                SubmitterParameter("-AutoDeleteEnabled")
+            ]
+        return [
+            SubmitterParameter("RequiredMemory", "0"),
+		    SubmitterParameter("PPAyoninjectenvvar", "1~1")
+        ]

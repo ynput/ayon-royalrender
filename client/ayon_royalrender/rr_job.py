@@ -80,7 +80,9 @@ class RRJob(object):
     ImageDir = attr.ib()  # type: str
     ImageFilename = attr.ib()  # type: str
     ImageExtension = attr.ib()  # type: str
-
+    # option to ouput more than one render path/node.
+    ChannelFilename = attr.ib() # type: str
+    ChannelExtension = attr.ib() # type: str
     # Some applications always add a . or _ in front of the frame number.
     # Set this variable to that character. The user can then change
     # the filename at the rrSubmitter and the submitter keeps
@@ -173,6 +175,7 @@ class RRJob(object):
     # Environment
     # only used in RR 8.3 and newer
     rrEnvList = attr.ib(default=None, type=str)  # type: str
+    rrEnvFile = attr.ib(default=None, type=str)  # type: str
 
 
 class SubmitterParameter:
@@ -192,8 +195,12 @@ class SubmitterParameter:
             str: concatenated string of parameter values.
 
         """
-        return '"{param}={val}"'.format(
-            param=self._parameter, val="~".join(self._values))
+        if len(self._values) > 0:
+            return "{param}={val}".format(
+                param=self._parameter, val="~".join(self._values))
+
+        return "{param}".format(
+                param=self._parameter)
 
 
 @attr.s
