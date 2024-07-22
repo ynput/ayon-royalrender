@@ -1,10 +1,7 @@
 # -*- coding: utf-8 -*-
 """Submitting render job to RoyalRender."""
 import os
-import json
 import re
-import tempfile
-import uuid
 from datetime import datetime
 
 import pyblish.api
@@ -13,10 +10,7 @@ from ayon_core.lib import (
     BoolDef,
     NumberDef,
     is_in_tests,
-    is_running_from_build,
-    is_in_tests,
 )
-from ayon_core.lib.execute import run_ayon_launcher_process
 from ayon_royalrender.api import Api as rrApi
 from ayon_royalrender.rr_job import (
     CustomAttribute,
