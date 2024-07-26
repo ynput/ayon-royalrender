@@ -1,10 +1,7 @@
 # -*- coding: utf-8 -*-
 """Submitting render job to RoyalRender."""
 import os
-import json
 import re
-import tempfile
-import uuid
 from datetime import datetime
 
 import pyblish.api
@@ -12,15 +9,14 @@ import pyblish.api
 from ayon_core.lib import (
     BoolDef,
     NumberDef,
-    is_running_from_build,
     is_in_tests,
 )
-from ayon_core.lib.execute import run_ayon_launcher_process
 from ayon_royalrender.api import Api as rrApi
 from ayon_royalrender.rr_job import (
     CustomAttribute,
-    RRJob,
     RREnvList,
+    RRJob,
+    SubmitterParameter,
     get_rr_platform,
 )
 from ayon_core.pipeline import AYONPyblishPluginMixin
@@ -28,9 +24,11 @@ from ayon_core.pipeline.publish import KnownPublishError
 from ayon_core.pipeline.publish.lib import get_published_workfile_instance
 
 
-class BaseCreateRoyalRenderJob(pyblish.api.InstancePlugin,
-                               AYONPyblishPluginMixin):
+class BaseCreateRoyalRenderJob(
+    pyblish.api.InstancePlugin, AYONPyblishPluginMixin
+):
     """Creates separate rendering job for Royal Render"""
+
     label = "Create Nuke Render job in RR"
     order = pyblish.api.IntegratorOrder + 0.1
     hosts = ["nuke"]
@@ -43,6 +41,7 @@ class BaseCreateRoyalRenderJob(pyblish.api.InstancePlugin,
     concurrent_tasks = 1
     use_gpu = True
     use_published = True
+    auto_delete = True
 
     @classmethod
     def get_attribute_defs(cls):
@@ -82,8 +81,13 @@ class BaseCreateRoyalRenderJob(pyblish.api.InstancePlugin,
             BoolDef(
                 "use_published",
                 default=cls.use_published,
-                label="Use published workfile"
-            )
+                label="Use published workfile",
+            ),
+            BoolDef(
+                "auto_delete",
+                default=cls.auto_delete,
+                label="Cleanup temp renderfolder",
+            ),
         ]
 
     def __init__(self, *args, **kwargs):
@@ -99,19 +103,31 @@ class BaseCreateRoyalRenderJob(pyblish.api.InstancePlugin,
             return
 
         instance.data["attributeValues"] = self.get_attr_values_from_data(
-            instance.data)
+            instance.data
+        )
 
-        # add suspend_publish attributeValue to instance data
+        # add suspend_publish and auto_delete  attributeValue to instance data
         instance.data["suspend_publish"] = instance.data["attributeValues"][
-            "suspend_publish"]
+            "suspend_publish"
+        ]
+        instance.data["auto_delete"] = instance.data["attributeValues"][
+            "auto_delete"
+        ]
+        instance.data["priority"] = instance.data["attributeValues"][
+            "priority"
+        ]
 
         context = instance.context
 
         self._rr_root = instance.data.get("rr_root")
+        self.log.debug(self._rr_root)
         if not self._rr_root:
             raise KnownPublishError(
-                ("Missing RoyalRender root. "
-                 "You need to configure RoyalRender module."))
+                (
+                    "Missing RoyalRender root. "
+                    "You need to configure RoyalRender module."
+                )
+            )
 
         self.rr_api = rrApi(self._rr_root)
 
@@ -138,7 +154,9 @@ class BaseCreateRoyalRenderJob(pyblish.api.InstancePlugin,
         if not instance.data.get("rrJobs"):
             instance.data["rrJobs"] = []
 
-    def get_job(self, instance, script_path, render_path, node_name):
+    def get_job(
+        self, instance, script_path, render_path, node_name, single=False
+    ):
         """Get RR job based on current instance.
 
         Args:
@@ -150,8 +168,10 @@ class BaseCreateRoyalRenderJob(pyblish.api.InstancePlugin,
             RRJob: RoyalRender Job instance.
 
         """
+        anatomy = instance.context.data["anatomy"]
         start_frame = int(instance.data["frameStartHandle"])
         end_frame = int(instance.data["frameEndHandle"])
+        padding = anatomy.templates_obj.frame_padding
 
         batch_name = os.path.basename(script_path)
         jobname = "%s - %s" % (batch_name, instance.name)
@@ -159,29 +179,53 @@ class BaseCreateRoyalRenderJob(pyblish.api.InstancePlugin,
             batch_name += datetime.now().strftime("%d%m%Y%H%M%S")
 
         render_dir = os.path.normpath(os.path.dirname(render_path))
-        output_filename_0 = self.pad_file_name(render_path, str(start_frame))
+        output_filename_0 = self.pad_file_name(
+            render_path, str(start_frame), padding
+        )
+
         file_name, file_ext = os.path.splitext(
-            os.path.basename(output_filename_0))
+            os.path.basename(output_filename_0)
+        )
 
         custom_attributes = []
-        if is_running_from_build():
-            custom_attributes = [
-                CustomAttribute(
-                    name="OpenPypeVersion",
-                    value=os.environ.get("OPENPYPE_VERSION"))
-            ]
+        job_disabled = "1" if instance.data["suspend_publish"] is True else "0"
+        priority = instance.data["priority"]
+
+        submitter_parameters_job = [
+            SubmitterParameter("SendJobDisabled", "1", f"{job_disabled}"),
+            SubmitterParameter("Priority", "1", f"{priority}"),
+        ]
 
         # this will append expected files to instance as needed.
         expected_files = self.expected_files(
-            instance, render_path, start_frame, end_frame)
+            instance, render_path, start_frame, end_frame
+        )
         instance.data["expectedFiles"].extend(expected_files)
 
+        # anatomy_data = instance.context.data["anatomyData"]
+        environment = RREnvList(
+            {
+                "AYON_PROJECT_NAME": instance.context.data["projectName"],
+                "AYON_FOLDER_PATH": instance.context.data["folderPath"],
+                "AYON_TASK_NAME": instance.context.data["task"],
+                "AYON_USERNAME": instance.context.data["user"],
+                "AYON_APP_NAME": os.environ["AYON_APP_NAME"],
+                "AYON_RENDER_JOB": "1",
+                "AYON_BUNDLE_NAME": os.environ["AYON_BUNDLE_NAME"],
+                "AYON_EXECUTABLE": os.environ["AYON_EXECUTABLE"],
+                "AYON_SERVER_URL": os.environ["AYON_SERVER_URL"],
+                "AYON_API_KEY": os.environ["AYON_API_KEY"],
+            }
+        )
+
+        render_dir = render_dir.replace("\\", "/")
         job = RRJob(
             Software="",
             Renderer="",
             SeqStart=int(start_frame),
             SeqEnd=int(end_frame),
             SeqStep=int(instance.data.get("byFrameStep", 1)),
+            ImageFramePadding=padding,
             SeqFileOffset=0,
             Version=0,
             SceneName=script_path,
@@ -190,7 +234,7 @@ class BaseCreateRoyalRenderJob(pyblish.api.InstancePlugin,
             ImageFilename=file_name,
             ImageExtension=file_ext,
             ImagePreNumberLetter="",
-            ImageSingleOutputFile=False,
+            ImageSingleOutputFile=single,
             SceneOS=get_rr_platform(),
             Layer=node_name,
             SceneDatabaseDir=script_path,
@@ -198,7 +242,10 @@ class BaseCreateRoyalRenderJob(pyblish.api.InstancePlugin,
             CompanyProjectName=instance.context.data["projectName"],
             ImageWidth=instance.data["resolutionWidth"],
             ImageHeight=instance.data["resolutionHeight"],
-            CustomAttributes=custom_attributes
+            CustomAttributes=custom_attributes,
+            SubmitterParameters=submitter_parameters_job,
+            rrEnvList=environment.serialize(),
+            rrEnvFile=os.path.join(render_dir, "rrEnv.rrEnv"),
         )
 
         return job
@@ -250,7 +297,7 @@ class BaseCreateRoyalRenderJob(pyblish.api.InstancePlugin,
         )
         return expected_files
 
-    def pad_file_name(self, path, first_frame):
+    def pad_file_name(self, path, first_frame, padding):
         """Return output file path with #### for padding.
 
         RR requires the path to be formatted with # in place of numbers.
@@ -266,6 +313,7 @@ class BaseCreateRoyalRenderJob(pyblish.api.InstancePlugin,
 
         """
         self.log.debug("pad_file_name path: `{}`".format(path))
+        self.log.debug("padding_from_anatatomy_preset: `{}`".format(padding))
         if "%" in path:
             search_results = re.search(r"(%0)(\d)(d.)", path).groups()
             self.log.debug("_ search_results: `{}`".format(search_results))
@@ -275,86 +323,6 @@ class BaseCreateRoyalRenderJob(pyblish.api.InstancePlugin,
             return path
 
         if first_frame:
-            padding = len(first_frame)
-            path = path.replace(first_frame, "#" * padding)
+            path = path.replace(str(first_frame).zfill(padding), "#" * padding)
 
         return path
-
-    def inject_environment(self, instance, job):
-        # type: (pyblish.api.Instance, RRJob) -> RRJob
-        """Inject environment variables for RR submission.
-
-        This function mimics the behaviour of the Deadline
-        integration. It is just temporary solution until proper
-        runtime environment injection is implemented in RR.
-
-        Args:
-            instance (pyblish.api.Instance): Publishing instance
-            job (RRJob): RRJob instance to be injected.
-
-        Returns:
-            RRJob: Injected RRJob instance.
-
-        Throws:
-            RuntimeError: If any of the required env vars is missing.
-
-        """
-
-        temp_file_name = "{}_{}.json".format(
-            datetime.utcnow().strftime('%Y%m%d%H%M%S%f'),
-            str(uuid.uuid1())
-        )
-
-        export_url = os.path.join(tempfile.gettempdir(), temp_file_name)
-        print(">>> Temporary path: {}".format(export_url))
-
-        anatomy_data = instance.context.data["anatomyData"]
-        addons_manager = instance.context.data["ayonAddonsManager"]
-        applications_addon = addons_manager.get_enabled_addon("applications")
-
-        folder_key = "folder"
-        if applications_addon is None:
-            # Use 'asset' when applications addon command is not used
-            folder_key = "asset"
-
-        add_kwargs = {
-            "project": anatomy_data["project"]["name"],
-            folder_key: instance.context.data["folderPath"],
-            "task": anatomy_data["task"]["name"],
-            "app": instance.context.data.get("appName"),
-            "envgroup": "farm"
-        }
-
-        if not all(add_kwargs.values()):
-            raise RuntimeError((
-                "Missing required env vars: AYON_PROJECT_NAME, AYON_FOLDER_PATH,"
-                " AYON_TASK_NAME, AYON_APP_NAME"
-            ))
-
-        args = ["--headless"]
-        # Use applications addon to extract environments
-        # NOTE this is for backwards compatibility, the global command
-        #   will be removed in future and only applications addon command
-        #   should be used.
-        if applications_addon is not None:
-            args.extend(["addon", "applications"])
-
-        args.extend([
-            "extractenvironments",
-            export_url
-        ])
-
-        if os.getenv('IS_TEST'):
-            args.append("--automatic-tests")
-
-        for key, value in add_kwargs.items():
-            args.extend([f"--{key}", value])
-        self.log.debug("Executing: {}".format(" ".join(args)))
-        run_ayon_launcher_process(*args, logger=self.log)
-
-        self.log.debug("Loading file ...")
-        with open(export_url) as fp:
-            contents = json.load(fp)
-
-        job.rrEnvList = RREnvList(contents).serialize()
-        return job

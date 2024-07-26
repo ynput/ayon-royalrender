@@ -1,4 +1,4 @@
-## OpenPype RoyalRender integration plugins
+## AYON RoyalRender integration plugins
 
 ### Installation
 

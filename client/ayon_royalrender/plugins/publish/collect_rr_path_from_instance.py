@@ -32,7 +32,7 @@ class CollectRRPathFromInstance(pyblish.api.InstancePlugin):
 
     def _collect_root(self, instance):
         # type: (pyblish.api.Instance) -> str
-        """Get Royal Render pat name from render instance.
+        """Get Royal Render path name from render instance.
         If artist should be able to select specific RR server it must be added
         to creator. It is not there yet.
         """

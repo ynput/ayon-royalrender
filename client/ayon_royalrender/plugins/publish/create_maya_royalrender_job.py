@@ -15,6 +15,7 @@ class CreateMayaRoyalRenderJob(lib.BaseCreateRoyalRenderJob):
 
     def update_job_with_host_specific(self, instance, job):
         job.Software = "Maya"
+        job.Renderer = "arnold-maya"
         job.Version = "{0:.2f}".format(MGlobal.apiVersion() / 10000)
         if instance.data.get("cameras"):
             job.Camera = instance.data["cameras"][0].replace("'", '"')
@@ -35,9 +36,9 @@ class CreateMayaRoyalRenderJob(lib.BaseCreateRoyalRenderJob):
         layer = instance.data["setMembers"]  # type: str
         layer_name = layer.removeprefix("rs_")
 
-        job = self.get_job(instance, self.scene_path, first_file_path,
-                           layer_name)
+        job = self.get_job(
+            instance, self.scene_path, first_file_path, layer_name
+        )
         job = self.update_job_with_host_specific(instance, job)
-        job = self.inject_environment(instance, job)
 
         instance.data["rrJobs"].append(job)

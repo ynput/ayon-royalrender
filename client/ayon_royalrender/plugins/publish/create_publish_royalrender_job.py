@@ -3,12 +3,14 @@
 import os
 import attr
 import json
+import re
 
 import pyblish.api
 
 from ayon_royalrender.rr_job import (
     RRJob,
     RREnvList,
+    SubmitterParameter,
     get_rr_platform
 )
 from ayon_core.pipeline.publish import KnownPublishError
@@ -37,7 +39,7 @@ class CreatePublishRoyalRenderJob(pyblish.api.InstancePlugin,
     icon = "tractor"
     targets = ["local"]
     hosts = ["fusion", "maya", "nuke", "celaction", "aftereffects", "harmony"]
-    families = ["render.farm", "prerender.farm",
+    families = ["render.farm", "prerender.farm", "render.frames_farm",
                 "renderlayer", "imagesequence", "vrayscene"]
     aov_filter = {"maya": [r".*([Bb]eauty).*"],
                   "aftereffects": [r".*"],  # for everything from AE
@@ -65,7 +67,19 @@ class CreatePublishRoyalRenderJob(pyblish.api.InstancePlugin,
         "AYON_APP_NAME",
         "AYON_USERNAME",
         "AYON_SG_USERNAME",
-    ]
+        'AYON_API_KEY',
+        'AYON_SERVER_URL',
+        'AYON_VERSION',
+        'USE_AYON_SERVER',
+        'AYON_DEFAULT_SETTINGS_VARIANT',
+        'AYON_BUNDLE_NAME',
+        'AYON_SITE_ID',
+        'PYTHONPATH',
+        'AYON_ROOT',
+        'AYON_MENU_LABEL'
+        ]
+
+
     priority = 50
 
     def process(self, instance):
@@ -73,7 +87,7 @@ class CreatePublishRoyalRenderJob(pyblish.api.InstancePlugin,
         self.context = context
         self.anatomy = instance.context.data["anatomy"]
 
-        if not instance.data.get("farm"):
+        if not instance.data.get("farm") or instance.data.get("frames_farm"):
             self.log.info("Skipping local instance.")
             return
 
@@ -148,6 +162,12 @@ class CreatePublishRoyalRenderJob(pyblish.api.InstancePlugin,
             create_metadata_path(instance, self.anatomy)
 
         self.log.info("Writing json file: {}".format(metadata_path))
+
+        #convert submitter parameters to str as preparation for
+        #json dump - needs improvement
+        publish_job["job"]["SubmitterParameters"] = str(publish_job["job"]["SubmitterParameters"])
+
+
         with open(metadata_path, "w") as f:
             json.dump(publish_job, f, indent=4, sort_keys=True)
 
@@ -191,16 +211,33 @@ class CreatePublishRoyalRenderJob(pyblish.api.InstancePlugin,
 
         # pass environment keys from self.environ_job_filter
         # and collect all pre_ids to wait for
+        job_environ = {}
         jobs_pre_ids = []
         for job in instance.data["rrJobs"]:  # type: RRJob
+            if job.rrEnvList:
+                if len(job.rrEnvList) > 2000:
+                    self.log.warning(("Job environment is too long "
+                                      f"{len(job.rrEnvList)} > 2000"))
+                job_environ.update(
+                    dict(RREnvList.parse(job.rrEnvList))
+                )
             jobs_pre_ids.append(job.PreID)
 
         priority = self.priority or instance.data.get("priority", 50)
+        suspend_publish = instance.data.get("suspend_publish", False)
 
-        # rr requires absolute path or all jobs won't show up in rrControl
+        submitter_parameters_job = [
+            SubmitterParameter("SendJobDisabled",
+                               "1",
+                               f"{suspend_publish}"),
+            SubmitterParameter("Priority",
+                               "1",
+                               f"{priority}")
+        ]
+
+        # rr requires absolut path or all jobs won't show up in rControl
         abs_metadata_path = self.anatomy.fill_root(rootless_metadata_path)
 
-        # command line set in E01__OpenPype__PublishJob.cfg, here only
         # additional logging
         args = [
             ">", os.path.join(os.path.dirname(abs_metadata_path),
@@ -209,7 +246,7 @@ class CreatePublishRoyalRenderJob(pyblish.api.InstancePlugin,
         ]
 
         job = RRJob(
-            Software="OpenPype",
+            Software="AYON",
             Renderer="Once",
             SeqStart=1,
             SeqEnd=1,
@@ -226,9 +263,9 @@ class CreatePublishRoyalRenderJob(pyblish.api.InstancePlugin,
             ImagePreNumberLetter="",
             SceneOS=get_rr_platform(),
             rrEnvList=environment.serialize(),
-            Priority=priority,
             CustomSHotName=jobname,
-            CompanyProjectName=instance.context.data["projectName"]
+            CompanyProjectName=instance.context.data["projectName"],
+            SubmitterParameters=submitter_parameters_job
         )
 
         # add assembly jobs as dependencies
