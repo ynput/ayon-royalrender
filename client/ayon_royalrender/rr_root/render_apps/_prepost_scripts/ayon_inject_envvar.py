@@ -125,7 +125,7 @@ class InjectEnvironment:
         logs.append("jid:{}".format(int(args.jid)))
 
         if not self.tcp.jobList_GetInfo(int(args.jid)):
-            print("Error jobList_GetInfo: " + tcp.errorMessage())
+            print("Error jobList_GetInfo: " + self.tcp.errorMessage())
             sys.exit()
         job = self.tcp.jobs.getJobSend(int(args.jid))
         self.tcp.jobs.setPathTargetOS(job.sceneOS)
