@@ -13,7 +13,6 @@ from ayon_core.lib import (
 )
 from ayon_royalrender.api import Api as rrApi
 from ayon_royalrender.rr_job import (
-    CustomAttribute,
     RREnvList,
     RRJob,
     SubmitterParameter,
