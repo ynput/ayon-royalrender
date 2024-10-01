@@ -68,7 +68,7 @@ class SubmitJobsToRoyalRender(pyblish.api.ContextPlugin):
             job.PreID = idx_pre_id
             if idx_pre_id > 0:
                 job.WaitForPreIDs.append(idx_pre_id - 1)
-		        # adjust rr pre id for publish job
+                # adjust rr pre id for publish job
                 if job.SceneName.endswith("metadata.json"):
                     idx_pre_id =+ 10
             idx_pre_id += 1
@@ -102,10 +102,10 @@ class SubmitJobsToRoyalRender(pyblish.api.ContextPlugin):
         if auto_delete:
             return [
                 SubmitterParameter("RequiredMemory", "0"),
-		        SubmitterParameter("PPAyoninjectenvvar", "1~1"),
+                SubmitterParameter("PPAyoninjectenvvar", "1~1"),
                 SubmitterParameter("-AutoDeleteEnabled")
             ]
         return [
             SubmitterParameter("RequiredMemory", "0"),
-		    SubmitterParameter("PPAyoninjectenvvar", "1~1")
+            SubmitterParameter("PPAyoninjectenvvar", "1~1")
         ]

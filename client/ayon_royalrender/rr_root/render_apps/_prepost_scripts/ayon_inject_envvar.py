@@ -7,9 +7,9 @@ import tempfile
 import uuid
 from datetime import datetime
 
-modPath = rrGlobal.rrModPyrrPath()
+modPath = rrGlobal.rrModPyrrPath()  # noqa: F821
 sys.path.append(modPath)
-import libpyRR39 as rr
+import libpyRR39 as rr  # noqa: E402
 
 logs = []
 
@@ -51,8 +51,8 @@ class InjectEnvironment:
 
     def tcp_connect(self):
         tcp = rr._rrTCP("")
-        tcp.setServer(rrGlobal.rrServer(), 7773)
-        print(f"RR Root Path: {rrGlobal.rootPath()}")
+        tcp.setServer(rrGlobal.rrServer(), 7773)  # noqa: F821
+        print(f"RR Root Path: {rrGlobal.rootPath()}")  # noqa: F821
         tcp.setLogin("", "")
         print(f"RR TCP Connection: {tcp.connectAndAuthorize()}")
         tcp.configGetGlobal()
@@ -125,7 +125,7 @@ class InjectEnvironment:
         logs.append("jid:{}".format(int(args.jid)))
 
         if not self.tcp.jobList_GetInfo(int(args.jid)):
-            print("Error jobList_GetInfo: " + tcp.errorMessage())
+            print("Error jobList_GetInfo: " + self.tcp.errorMessage())
             sys.exit()
         job = self.tcp.jobs.getJobSend(int(args.jid))
         self.tcp.jobs.setPathTargetOS(job.sceneOS)
