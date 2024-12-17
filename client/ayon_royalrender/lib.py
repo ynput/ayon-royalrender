@@ -211,9 +211,10 @@ class BaseCreateRoyalRenderJob(
                 "AYON_APP_NAME": os.environ["AYON_APP_NAME"],
                 "AYON_RENDER_JOB": "1",
                 "AYON_BUNDLE_NAME": os.environ["AYON_BUNDLE_NAME"],
-                "AYON_EXECUTABLE": os.environ["AYON_EXECUTABLE"],
-                "AYON_SERVER_URL": os.environ["AYON_SERVER_URL"],
-                "AYON_API_KEY": os.environ["AYON_API_KEY"],
+                # these are optional, but required on render nodes
+                "AYON_EXECUTABLE": os.environ.get("AYON_EXECUTABLE"),
+                "AYON_SERVER_URL": os.environ.get("AYON_SERVER_URL"),
+                "AYON_API_KEY": os.environ.get("AYON_API_KEY"),
             }
         )
 
