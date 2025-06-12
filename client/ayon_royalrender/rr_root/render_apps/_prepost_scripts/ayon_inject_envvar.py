@@ -230,12 +230,24 @@ class InjectEnvironment:
 
 if __name__ == "__main__":
     try:
+        tmpdir = None
         injector = InjectEnvironment()
-        injector.inject()
-    except Exception as exp:
-        logs.append(f"Error happened::{str(exp)}")
 
-    tmpdir = injector.meta_dir
-    log_path = os.path.join(tmpdir, "log.txt")
-    with open(log_path, "a") as fp:
-        fp.writelines(s.replace("\\r\\n", "\n") + "\n" for s in logs)
+        injector.inject()
+        tmpdir = injector.meta_dir
+    except Exception as exp:
+        msg = f"Error happened::{str(exp)}"
+        raise RuntimeError(msg)
+
+    finally:
+        if tmpdir is None:
+            temp_file = tempfile.NamedTemporaryFile(delete=False)
+            log_path = temp_file.name
+        else:
+            log_path = os.path.join(tmpdir, "log.txt")
+
+        print(f"Creating log at::{log_path}")
+        with open(log_path, "a") as fp:
+            fp.writelines(s.replace("\\r\\n", "\n") + "\n" for s in logs)
+
+
