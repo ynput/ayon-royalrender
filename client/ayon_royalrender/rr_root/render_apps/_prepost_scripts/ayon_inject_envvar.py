@@ -190,7 +190,10 @@ class InjectEnvironment:
 
         logs.append("Running:: {}".format(args))
         proc = subprocess.Popen(
-            args, env=environments, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+            args,
+            env=environments,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
         )
         output, error = proc.communicate()
 
