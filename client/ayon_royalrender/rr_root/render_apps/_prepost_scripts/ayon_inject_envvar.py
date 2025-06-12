@@ -7,9 +7,11 @@ import tempfile
 import uuid
 from datetime import datetime
 
-modPath = rrGlobal.rrModPyrrPath()  # noqa: F821
-sys.path.append(modPath)
-import libpyRR39 as rr  # noqa: E402
+mod_dir = os.path.join(os.environ["RR_ROOT"], "SDK", "External", "Python")
+if mod_dir not in sys.path:
+    sys.path.append(mod_dir)
+import rr_python_utils.connection as rr_connect
+
 
 logs = []
 
@@ -50,11 +52,7 @@ class InjectEnvironment:
         self.tcp = self.tcp_connect()
 
     def tcp_connect(self):
-        tcp = rr._rrTCP("")
-        tcp.setServer(rrGlobal.rrServer(), 7773)  # noqa: F821
-        print(f"RR Root Path: {rrGlobal.rootPath()}")  # noqa: F821
-        tcp.setLogin("", "")
-        print(f"RR TCP Connection: {tcp.connectAndAuthorize()}")
+        tcp = rr_connect.server_connect(user_name=None)
         tcp.configGetGlobal()
         if tcp.errorMessage():
             print(tcp.errorMessage())
