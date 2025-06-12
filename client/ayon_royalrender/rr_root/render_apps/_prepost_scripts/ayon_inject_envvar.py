@@ -70,8 +70,7 @@ class InjectEnvironment:
             logs.append("Not a ayon render job, skipping.")
             return
 
-        if not self._is_required_environment():
-            return
+        self._check_launch_environemnt()
 
         context = self._get_context()
 
@@ -96,12 +95,19 @@ class InjectEnvironment:
         logs.append(f"_get_metadata_dir::{new_path}")
         return new_path
 
-    def _is_required_environment(self):
-        if not os.environ.get("AYON_API_KEY"):
-            msg = "AYON_API_KEY env var must be set " "for Ayon jobs!"
+    def _check_launch_environemnt(self):
+        required_envs = ["AYON_SERVER_URL", "AYON_API_KEY", "AYON_EXECUTABLE"]
+        missing = []
+        for key in required_envs:
+            if not os.environ.get(key):
+                missing.append(key)
+
+        if missing:
+            msg = (
+                f"Required environment variable missing: '{','.join(missing)}"
+            )
             logs.append(msg)
-            return False
-        return True
+            raise RuntimeError(msg)
 
     def _get_context(self):
         envs = self._get_job_environments()
