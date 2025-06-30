@@ -33,7 +33,7 @@ class InjectEnvironment:
     Expected set environments on RR worker:
     - AYON_SERVER_URL
     - AYON_API_KEY - API key to Ayon server, most likely from service account
-    - AYON_EXECUTABLE_PATH - locally accessible path for `ayon_console`
+    - AYON_EXECUTABLE - locally accessible path for `ayon_console`
     (could be removed if it would be possible to have it in renderApps config
     and to be accessible from there as there it is required for publish jobs).
     - AYON_FILTER_ENVIRONMENTS - potential black list of unwanted environment
