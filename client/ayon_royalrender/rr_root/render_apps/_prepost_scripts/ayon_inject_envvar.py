@@ -68,8 +68,9 @@ class InjectEnvironment:
         self.meta_dir = meta_dir
         envs = self._get_job_environments()
 
-        if not envs.get("AYON_RENDER_JOB"):
-            logs.append("Not a ayon render job, skipping.")
+        if (not envs.get("AYON_RENDER_JOB") and
+                not envs.get("AYON_REMOTE_PUBLISH")):
+            logs.append("Not a ayon render or remote publish job, skipping.")
             return
 
         if not self._is_required_environment():
