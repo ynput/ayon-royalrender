@@ -14,7 +14,7 @@ from ayon_core.pipeline.create import CreateContext
 from ayon_core.pipeline import registered_host
 
 
-def remote_publish(scene_path, rrfile_path):
+def remote_publish(scene_path):
     log = Logger.get_logger(__name__)
 
     error_format = "Failed {{plugin.__name__}}: {{error}}:{{error.traceback}}"
@@ -49,10 +49,8 @@ if __name__ == "__main__":
     # Perform remote publish with thorough error checking
     parser = argparse.ArgumentParser(description='Process Maya scene file')
     parser.add_argument('-scene', required=True, help='Path to Maya scene file')
-    parser.add_argument('-rrfile', required=True, help='Path to extracted environments')
 
     args = parser.parse_args()
     scene_path = args.scene
-    rrfile_path = args.rrfile
 
-    remote_publish(scene_path, rrfile_path)
+    remote_publish(scene_path)
