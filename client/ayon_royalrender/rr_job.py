@@ -177,6 +177,8 @@ class RRJob(object):
     rrEnvList = attr.ib(default=None, type=str)  # type: str
     rrEnvFile = attr.ib(default=None, type=str)  # type: str
 
+    CustomScriptFile = attr.ib(default=None)  # type: str
+
 
 class SubmitterParameter:
     """Wrapper for Submitter Parameters."""
