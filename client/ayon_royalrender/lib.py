@@ -211,6 +211,8 @@ class BaseCreateRoyalRenderJob(
 
         environment = get_instance_job_envs(instance)
         environment.update(JobType[job_type].get_job_env())
+        environment.append(r'[exec] "<rrLocalBin><OsxApp rrPythonconsole>"  <rrLocalRenderScripts>ayon_inject_envvar.py <rrLocalTemp>/myDynamicEnv.allos')
+        environment.append(r'[exec] <rrLocalTemp>/myDynamicEnv.allos')
         environment = RREnvList(**environment)
 
         render_dir = render_dir.replace("\\", "/")
