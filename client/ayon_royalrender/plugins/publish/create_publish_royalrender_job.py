@@ -60,23 +60,25 @@ class CreatePublishRoyalRenderJob(pyblish.api.InstancePlugin,
     families_transfer = ["render3d", "render2d", "ftrack", "slate"]
 
     environ_keys = [
-        "FTRACK_API_USER",
+        # ftrack addon
         "FTRACK_API_KEY",
+        "FTRACK_API_USER",
         "FTRACK_SERVER",
+
+        # kitsu addon
+        "KITSU_SERVER",
+        "KITSU_LOGIN",
+        "KITSU_PWD",
+
         "AYON_APP_NAME",
         "AYON_USERNAME",
         "AYON_SG_USERNAME",
-        'AYON_API_KEY',
-        'AYON_SERVER_URL',
-        'AYON_VERSION',
-        'USE_AYON_SERVER',
-        'AYON_DEFAULT_SETTINGS_VARIANT',
-        'AYON_BUNDLE_NAME',
-        'AYON_SITE_ID',
-        'PYTHONPATH',
-        'AYON_ROOT',
-        'AYON_MENU_LABEL'
-        ]
+        "AYON_VERSION",
+        "USE_AYON_SERVER",
+        "AYON_BUNDLE_NAME",
+        "AYON_USE_STAGING",
+        "AYON_IN_TESTS",
+    ]
 
 
     priority = 50
