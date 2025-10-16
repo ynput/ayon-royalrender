@@ -211,9 +211,10 @@ class BaseCreateRoyalRenderJob(
 
         environment = get_instance_job_envs(instance)
         environment.update(JobType[job_type].get_job_env())
-        environment.append(r'[exec] "<rrLocalBin><OsxApp rrPythonconsole>"  <rrLocalRenderScripts>ayon_inject_envvar.py <rrLocalTemp>/myDynamicEnv.allos')
-        environment.append(r'[exec] <rrLocalTemp>/myDynamicEnv.allos')
         environment = RREnvList(**environment)
+        environment_serialized = environment.serialize()
+        environment_serialized += r'~~~[exec] "<rrLocalBin><OsxApp rrPythonconsole>"  <rrLocalRenderScripts>ayon_inject_envvar.py <rrLocalTemp>/myDynamicEnv.allos'
+        environment_serialized += r'~~~[exec] <rrLocalTemp>/myDynamicEnv.allos'
 
         render_dir = render_dir.replace("\\", "/")
         job = RRJob(
@@ -241,7 +242,7 @@ class BaseCreateRoyalRenderJob(
             ImageHeight=instance.data.get("resolutionHeight"),
             CustomAttributes=custom_attributes,
             SubmitterParameters=submitter_parameters_job,
-            rrEnvList=environment.serialize(),
+            rrEnvList=environment_serialized,
             rrEnvFile=os.path.join(render_dir, "rrEnv.rrEnv"),
         )
 
