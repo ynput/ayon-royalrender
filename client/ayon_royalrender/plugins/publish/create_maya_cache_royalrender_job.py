@@ -5,10 +5,7 @@ import os
 from maya import cmds
 from maya.OpenMaya import MGlobal  # noqa: F401
 
-from ayon_core.pipeline.farm.tools import iter_expected_files
-
 from ayon_royalrender import lib
-from ayon_royalrender.scripts import remote_publish
 
 
 class CreateMayaCacheRoyalRenderJob(lib.BaseCreateRoyalRenderJob):
@@ -20,7 +17,7 @@ class CreateMayaCacheRoyalRenderJob(lib.BaseCreateRoyalRenderJob):
         job.Software = "Maya"
         job.Renderer = "RemotePublish"
         job.Version = "{0:.2f}".format(MGlobal.apiVersion() / 10000)
-        job.CustomScriptFile = remote_publish.__file__.replace(".pyc", ".py")
+        job.CustomScriptFile = "<rrLocalRenderScripts>/remote_publish.py"
         workspace = instance.context.data["workspaceDir"]
         job.SceneDatabaseDir = workspace
         job.rrEnvList += f"~~~INSTANCE_IDS={instance.name}"
