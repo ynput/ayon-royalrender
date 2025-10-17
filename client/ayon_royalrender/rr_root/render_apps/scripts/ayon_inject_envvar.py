@@ -6,10 +6,13 @@ import sys
 import tempfile
 import uuid
 from datetime import datetime
+import platform
 
-modPath = rrGlobal.rrModPyrrPath()  # noqa: F821
-sys.path.append(modPath)
-import libpyRR39 as rr  # noqa: E402
+mod_dir = os.path.join(os.environ["RR_ROOT"], "SDK", "External", "Python")
+if mod_dir not in sys.path:
+    sys.path.append(mod_dir)
+import rr_python_utils.connection as rr_connect
+
 
 logs = []
 
@@ -31,7 +34,7 @@ class InjectEnvironment:
     Expected set environments on RR worker:
     - AYON_SERVER_URL
     - AYON_API_KEY - API key to Ayon server, most likely from service account
-    - AYON_EXECUTABLE_PATH - locally accessible path for `ayon_console`
+    - AYON_EXECUTABLE - locally accessible path for `ayon_console`
     (could be removed if it would be possible to have it in renderApps config
     and to be accessible from there as there it is required for publish jobs).
     - AYON_FILTER_ENVIRONMENTS - potential black list of unwanted environment
@@ -50,11 +53,7 @@ class InjectEnvironment:
         self.tcp = self.tcp_connect()
 
     def tcp_connect(self):
-        tcp = rr._rrTCP("")
-        tcp.setServer(rrGlobal.rrServer(), 7773)  # noqa: F821
-        print(f"RR Root Path: {rrGlobal.rootPath()}")  # noqa: F821
-        tcp.setLogin("", "")
-        print(f"RR TCP Connection: {tcp.connectAndAuthorize()}")
+        tcp = rr_connect.server_connect(user_name=None)
         tcp.configGetGlobal()
         if tcp.errorMessage():
             print(tcp.errorMessage())
@@ -68,13 +67,11 @@ class InjectEnvironment:
         self.meta_dir = meta_dir
         envs = self._get_job_environments()
 
-        if (not envs.get("AYON_RENDER_JOB") and
-                not envs.get("AYON_REMOTE_PUBLISH")):
-            logs.append("Not a ayon render or remote publish job, skipping.")
+        if not envs.get("AYON_RENDER_JOB"):
+            logs.append("Not a ayon render job, skipping.")
             return
 
-        if not self._is_required_environment():
-            return
+        self._check_launch_environemnt()
 
         context = self._get_context()
 
@@ -99,12 +96,19 @@ class InjectEnvironment:
         logs.append(f"_get_metadata_dir::{new_path}")
         return new_path
 
-    def _is_required_environment(self):
-        if not os.environ.get("AYON_API_KEY"):
-            msg = "AYON_API_KEY env var must be set " "for Ayon jobs!"
+    def _check_launch_environemnt(self):
+        required_envs = ["AYON_SERVER_URL", "AYON_API_KEY", "AYON_EXECUTABLE"]
+        missing = []
+        for key in required_envs:
+            if not os.environ.get(key):
+                missing.append(key)
+
+        if missing:
+            msg = (
+                f"Required environment variable missing: '{','.join(missing)}"
+            )
             logs.append(msg)
-            return False
-        return True
+            raise RuntimeError(msg)
 
     def _get_context(self):
         envs = self._get_job_environments()
@@ -120,15 +124,20 @@ class InjectEnvironment:
         logs.append("get_jobs")
         parser = argparse.ArgumentParser()
         parser.add_argument("-jid")
-        parser.add_argument("-authStr")
+        parser.add_argument(
+            "filepath", 
+            help="Where script file with environment will be saved"
+        )
         args = parser.parse_args()
 
-        logs.append("jid:{}".format(int(args.jid)))
+        jid = args.jid
+        print(f"jid::{jid}")
+        logs.append("jid:{}".format(int(jid)))
 
-        if not self.tcp.jobList_GetInfo(int(args.jid)):
+        if not self.tcp.jobList_GetInfo(int(jid)):
             print("Error jobList_GetInfo: " + self.tcp.errorMessage())
             sys.exit()
-        job = self.tcp.jobs.getJobSend(int(args.jid))
+        job = self.tcp.jobs.getJobSend(int(jid))
         self.tcp.jobs.setPathTargetOS(job.sceneOS)
 
         return job
@@ -143,8 +152,9 @@ class InjectEnvironment:
         env_list = job.customData_Str("rrEnvList")
         envs = {}
         for env in env_list.split("~~~"):
-            key, value = env.split("=")
-            envs[key] = value
+            if "=" in env:
+                key, value = env.split("=")
+                envs[key] = value
 
         return envs
 
@@ -187,7 +197,10 @@ class InjectEnvironment:
 
         logs.append("Running:: {}".format(args))
         proc = subprocess.Popen(
-            args, env=environments, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+            args,
+            env=environments,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
         )
         output, error = proc.communicate()
 
@@ -207,29 +220,321 @@ class InjectEnvironment:
             filter_envs = set(filter_out.split(";"))
 
         lines = []
+        platform_name = platform.system().lower()
+        if platform_name:
+            env_command = "set"
+            ext = "bat"
+        else:
+            env_command = "export"
+            ext = "sh"
+
+        platform_deny_name = f"env_denied_{platform_name}"
+        platform_deny_list = env_denied_dict[platform_deny_name]
+        denied = set(platform_deny_list + env_denied_dict["env_denied_RR"])
+        print(f"denied::{denied}")
         for key, value in extracted_env.items():
             if key in filter_envs:
                 continue
+            if key in denied:
+                continue
 
-            line = f"{key} = {value}"
+            line = f'{env_command} {key}={value}'
             lines.append(line)
 
-        rrenv_path = os.path.join(meta_dir, "rrEnv.rrEnv")
+        rrenv_path = os.path.join(meta_dir, f"rrEnv.{ext}")
 
         with open(rrenv_path, "w") as fp:
             fp.writelines(s + "\n" for s in lines)
 
         return os.path.normpath(rrenv_path)
+    
+
+# TODO move to Settings
+env_denied_windows = \
+[
+    'Path',
+    'TEMP',
+    'TMP',
+    #Windows10 (RR-Holger__Elliot)
+    'ALLUSERSPROFILE',
+    'APPDATA',
+    'CommonProgramFiles',
+    'CommonProgramFiles(x86)',
+    'CommonProgramW6432',
+    'COMPUTERNAME',
+    'ComSpec',
+    'CUDA_CACHE_MAXSIZE',
+    'DriverData',
+    'FPS_BROWSER_APP_PROFILE_STRING',
+    'FPS_BROWSER_USER_PROFILE_STRING',
+    'HOMEDRIVE',
+    'HOMEPATH',
+    'INTEL_DEV_REDIST',
+    'LOCALAPPDATA',
+    'LOGONSERVER',
+    'NUMBER_OF_PROCESSORS',
+    'PATHEXT',
+    'PROCESSOR_ARCHITECTURE',
+    'PROCESSOR_IDENTIFIER',
+    'PROCESSOR_LEVEL',
+    'PROCESSOR_REVISION',
+    'ProgramData',
+    'ProgramFiles',
+    'ProgramFiles(x86)',
+    'ProgramW6432',
+    'PROMPT',
+    'PSModulePath',
+    'PUBLIC',
+    'SESSIONNAME',
+    'SystemDrive',
+    'SystemRoot',
+    'USERDOMAIN',
+    'USERDOMAIN_ROAMINGPROFILE',
+    'USERNAME',
+    'USERPROFILE',
+    'windir',
+    #Windows11 (RR-Holger__RR-AYON__WIN)
+    'OneDrive',
+    'OS',
+]
+
+
+env_denied_linux = \
+[
+    'PATH',
+    'TEMP',
+    'TMP',
+    #Rocky 9.3 (RR-Holger__RR-AYON__LNX)
+    'BASH_FUNC_which%%',
+    'COLORTERM',
+    'CUDA_CACHE_MAXSIZE',
+    'DBUS_SESSION_BUS_ADDRESS',
+    'DEBUGINFOD_IMA_CERT_PATH',
+    'DEBUGINFOD_URLS',
+    'DESKTOP_SESSION',
+    'DISPLAY',
+    'GDK_BACKEND',
+    'GDMSESSION',
+    'GDM_LANG',
+    'GNOME_TERMINAL_SCREEN',
+    'GNOME_TERMINAL_SERVICE',
+    'HISTCONTROL',
+    'HISTSIZE',
+    'HOME',
+    'HOSTNAME',
+    'LANG',
+    'LESSOPEN',
+    'LOGNAME',
+    'LS_COLORS',
+    'MAIL',
+    'PWD',
+    'QT_IM_MODULE',
+    'SESSION_MANAGER',
+    'SHELL',
+    'SHLVL',
+    'SSH_AUTH_SOCK',
+    'SYSTEMD_EXEC_PID',
+    'TERM',
+    'USER',
+    'USERNAME',
+    'VTE_VERSION',
+    'WINDOWPATH',
+    'XAUTHORITY',
+    'XDG_CURRENT_DESKTOP',
+    'XDG_DATA_DIRS',
+    'XDG_MENU_PREFIX',
+    'XDG_RUNTIME_DIR',
+    'XDG_SESSION_CLASS',
+    'XDG_SESSION_DESKTOP',
+    'XDG_SESSION_TYPE',
+    'XMODIFIERS',
+    '_',
+    'which_declare',
+    
+    #CentOS 7(RR-Holger__dev9)
+    'GNOME_DESKTOP_SESSION_ID',
+    'GNOME_SHELL_SESSION_MODE',
+    'IMSETTINGS_INTEGRATE_DESKTOP',
+    'IMSETTINGS_MODULE',
+    'INFOPATH',
+    'LD_LIBRARY_PATH',
+    'MANPATH',
+    'PCP_DIR',
+    'PKG_CONFIG_PATH',
+    'SSH_AGENT_PID',
+    'XDG_SEAT',
+    'XDG_SESSION_ID',
+    'XDG_VTNR',
+
+    #CentOS 8.2(RR-Holger__dev)
+    'GJS_DEBUG_OUTPUT',
+    'GJS_DEBUG_TOPICS',
+    'WAYLAND_DISPLAY',
+
+    #Ubuntu 20 (RR-Holger__test)
+    'CLUTTER_IM_MODULE',
+    'GPG_AGENT_INFO',
+    'GTK_IM_MODULE',
+    'GTK_MODULES',
+    'IM_CONFIG_PHASE',
+    'INVOCATION_ID',
+    'JOURNAL_STREAM',
+    'LC_ADDRESS',
+    'LC_IDENTIFICATION',
+    'LC_MEASUREMENT',
+    'LC_MONETARY',
+    'LC_NAME',
+    'LC_NUMERIC',
+    'LC_PAPER',
+    'LC_TELEPHONE',
+    'LC_TIME',
+    'LESSCLOSE',
+    'MANAGERPID',
+    'QT4_IM_MODULE',
+    'QT_ACCESSIBILITY',
+    'XDG_CONFIG_DIRS',
+
+]
+
+
+env_denied_darwin = \
+[
+    'PATH',
+    'TEMP',
+    'TMP',
+    #Big Sur 11.6 (RR-Holger__Grisu)
+    'TMPDIR',
+    '__CFBundleIdentifier',
+    'XPC_FLAGS',
+    'XPC_SERVICE_NAME',
+    'SSH_AUTH_SOCK',
+    'TERM',
+    'TERM_PROGRAM',
+    'TERM_PROGRAM_VERSION',
+    'TERM_SESSION_ID',
+    'SHELL',
+    'HOME',
+    'LOGNAME',
+    'USER',
+    'SHLVL',
+    'PWD',
+    'OLDPWD',
+    'HOMEBREW_PREFIX',
+    'HOMEBREW_CELLAR',
+    'HOMEBREW_REPOSITORY',
+    'INFOPATH',
+    'PYENV_SHELL',
+    'LC_CTYPE',
+    '_',
+    #Sequonia 15.5 (RR-Holger__Grisu)
+    'LaunchInstanceID',
+    'SECURITYSESSIONID',
+
+]
+
+
+env_denied_RR = \
+[
+    'rrExeVer',
+    'rrExeVerMajor',
+    'rrExeVerMinor',
+    'rrExeVerMinorRevision',
+    'rrExeVerMinorRevision_NP',
+    'rrExeVerMajorMinor',
+    'rrExeOS',
+    'rrExeBaseDir',
+    'rrExeOSversion',
+    'rrExeVersionFull',
+    'rrExeVersionMinReq',
+    'rrExeVersionMajor',
+    'rrExeVersionMinorFull',
+    'rrBaseAppPath',
+    'rrJobRenderapp',
+    'rrJobRenderer',
+    'rrJobVer',
+    'rrJobVerMajor',
+    'rrJobVerMinor',
+    'rrJobVerMajorMinor',
+    'rrJobVerMinorRevision',
+    'rrJobVerMinorRevision_NP',
+    'rrJobRendererVersion',
+    'rrJobRendererVersionMajor',
+    'rrJobProject',
+    'rrJobUser',
+    'rrJobType',
+    'rrJobTiled',
+    'rrJobCustomScene',
+    'rrJobCustomSequence',
+    'rrJobCustomShot',
+    'rrJobCustomVersion',
+    'rrJobSceneOS',
+    'rrJobVersion',
+    'rrJobVersionFull',
+    'rrJobVersionMajor',
+    'rrJobVersionMinorFull',
+    'rrClientName',
+    'rrClientCores',
+    'rrClientCoresPhysical',
+    'rrClientCoresUsed',
+    'rrClientRamMaxAllowed',
+    'rrClientRamAvail',
+    'rrClientRunMode',
+    'GPUactive',
+    'GpuListC',
+    'GPUsInstalledList',
+    'rrClientBit',
+    'rrClientRenderInstance',
+    'rrClientThreadID',
+    'rrClientThreadIDstr',
+    'rrClientGroups',
+    'cfgLicPool',
+    'cfgPreset',
+    'rrOS',
+    'RR_ROOT',
+    'rrBin',
+    'rrPlugins',
+    'rrPluginsNoOS',
+    'rrPrefs',
+    'rrSharedExeDir',
+    'rrLocalTemp',
+    'TEMP',
+    'TMP',
+    'TMPDIR',
+    'rrLocalRoot',
+    'rrLocalExeDir',
+    'rrLocalPrefs',
+    'rrLocalPlugins',
+]
+
+env_denied_allOS = list(set(env_denied_windows + env_denied_linux + env_denied_darwin + env_denied_RR))
+
+env_denied_dict = { 
+    "env_denied_windows": env_denied_windows,
+    "env_denied_linux": env_denied_linux,
+    "env_denied_darwin": env_denied_darwin,
+    "env_denied_RR": env_denied_RR
+}
 
 
 if __name__ == "__main__":
     try:
+        tmpdir = None
         injector = InjectEnvironment()
-        injector.inject()
-    except Exception as exp:
-        logs.append(f"Error happened::{str(exp)}")
 
-    tmpdir = injector.meta_dir
-    log_path = os.path.join(tmpdir, "log.txt")
-    with open(log_path, "a") as fp:
-        fp.writelines(s.replace("\\r\\n", "\n") + "\n" for s in logs)
+        injector.inject()
+        tmpdir = injector.meta_dir
+    except Exception as exp:
+        msg = f"Error happened::{str(exp)}"
+        raise RuntimeError(msg)
+
+    finally:
+        if tmpdir is None:
+            temp_file = tempfile.NamedTemporaryFile(delete=False)
+            log_path = temp_file.name
+        else:
+            log_path = os.path.join(tmpdir, "log.txt")
+
+        print(f"Creating log at::{log_path}")
+        with open(log_path, "a") as fp:
+            fp.writelines(s.replace("\\r\\n", "\n") + "\n" for s in logs)
+
