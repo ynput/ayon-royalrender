@@ -226,12 +226,15 @@ class CreatePublishRoyalRenderJob(pyblish.api.InstancePlugin,
         suspend_publish = instance.data.get("suspend_publish", False)
 
         submitter_parameters_job = [
-            SubmitterParameter("SendJobDisabled",
-                               "1",
-                               f"{suspend_publish}"),
-            SubmitterParameter("Priority",
-                               "1",
-                               f"{priority}")
+            SubmitterParameter(
+                "SendJobDisabled",
+                "1",
+                f"{suspend_publish}"),
+            SubmitterParameter(
+                "Priority",
+                "1",
+                f"{priority}"
+            )
         ]
 
         # rr requires absolut path or all jobs won't show up in rControl
