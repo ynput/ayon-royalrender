@@ -209,14 +209,17 @@ class BaseCreateRoyalRenderJob(
         )
         instance.data["expectedFiles"].extend(expected_files)
 
+        render_dir = render_dir.replace("\\", "/")
+
         environment = get_instance_job_envs(instance)
         environment.update(JobType[job_type].get_job_env())
         environment = RREnvList(**environment)
         environment_serialized = environment.serialize()
-        environment_serialized += r'~~~[exec] "<rrLocalBin><OsxApp rrPythonconsole>"  <rrLocalRenderScripts>ayon_inject_envvar.py <rrLocalTemp>/myDynamicEnv.allos'
-        environment_serialized += r'~~~[exec] <rrLocalTemp>/myDynamicEnv.allos'
 
-        render_dir = render_dir.replace("\\", "/")
+        exported_env_script_path = f"{render_dir}/rrEnv.allos"
+        environment_serialized += rf'~~~[exec] "<rrLocalBin><OsxApp rrPythonconsole>"  <rrLocalRenderScripts>ayon_inject_envvar.py -jid <JID> {exported_env_script_path}'
+        environment_serialized += rf'~~~[exec] {exported_env_script_path}'
+
         job = RRJob(
             Software="",
             Renderer="",
@@ -228,7 +231,7 @@ class BaseCreateRoyalRenderJob(
             Version=0,
             SceneName=script_path,
             IsActive=True,
-            ImageDir=render_dir.replace("\\", "/"),
+            ImageDir=render_dir,
             ImageFilename=file_name,
             ImageExtension=file_ext,
             ImagePreNumberLetter="",
@@ -243,7 +246,6 @@ class BaseCreateRoyalRenderJob(
             CustomAttributes=custom_attributes,
             SubmitterParameters=submitter_parameters_job,
             rrEnvList=environment_serialized,
-            rrEnvFile=os.path.join(render_dir, "rrEnv.rrEnv"),
         )
 
         return job

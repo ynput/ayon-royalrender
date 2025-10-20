@@ -17,10 +17,10 @@ class CreateMayaCacheRoyalRenderJob(lib.BaseCreateRoyalRenderJob):
         job.Software = "Maya"
         job.Renderer = "RemotePublish"
         job.Version = "{0:.2f}".format(MGlobal.apiVersion() / 10000)
-        job.CustomScriptFile = "<rrLocalRenderScripts>/remote_publish.py"
+        job.CustomScriptFile = "<rrLocalRenderScripts>/ayon_remote_publish.py"
         workspace = instance.context.data["workspaceDir"]
         job.SceneDatabaseDir = workspace
-        job.rrEnvList += f"~~~INSTANCE_IDS={instance.name}"
+        job.rrEnvList += f"~~~INSTANCE_IDS={instance.data['instance_id']}"
 
         return job
 
