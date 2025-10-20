@@ -13,7 +13,6 @@ if mod_dir not in sys.path:
     sys.path.append(mod_dir)
 import rr_python_utils.connection as rr_connect
 
-
 logs = []
 
 
@@ -537,4 +536,3 @@ if __name__ == "__main__":
         print(f"Creating log at::{log_path}")
         with open(log_path, "a") as fp:
             fp.writelines(s.replace("\\r\\n", "\n") + "\n" for s in logs)
-
