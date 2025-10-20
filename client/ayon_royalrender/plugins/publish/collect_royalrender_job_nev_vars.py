@@ -42,3 +42,6 @@ class CollectRoyalRenderJobEnvVars(pyblish.api.ContextPlugin):
             if value:
                 self.log.debug(f"Setting job env: {key}: {value}")
                 env[key] = value
+
+        if os.environ.get("AYON_USE_STAGING"):
+            env["AYON_USE_STAGING"] = "1"
