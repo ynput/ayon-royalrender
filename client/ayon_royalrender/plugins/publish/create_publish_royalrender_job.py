@@ -12,6 +12,7 @@ from ayon_royalrender.rr_job import (
     SubmitterParameter,
     get_rr_platform
 )
+from ayon_royalrender.lib import get_instance_job_envs, JobType
 from ayon_core.pipeline.publish import KnownPublishError
 from ayon_core.pipeline.farm.pyblish_functions import (
     create_skeleton_instance,
@@ -58,26 +59,6 @@ class CreatePublishRoyalRenderJob(pyblish.api.InstancePlugin,
 
     # list of family names to transfer to new family if present
     families_transfer = ["render3d", "render2d", "ftrack", "slate"]
-
-    environ_keys = [
-        "FTRACK_API_USER",
-        "FTRACK_API_KEY",
-        "FTRACK_SERVER",
-        "AYON_APP_NAME",
-        "AYON_USERNAME",
-        "AYON_SG_USERNAME",
-        'AYON_API_KEY',
-        'AYON_SERVER_URL',
-        'AYON_VERSION',
-        'USE_AYON_SERVER',
-        'AYON_DEFAULT_SETTINGS_VARIANT',
-        'AYON_BUNDLE_NAME',
-        'AYON_SITE_ID',
-        'PYTHONPATH',
-        'AYON_ROOT',
-        'AYON_MENU_LABEL'
-        ]
-
 
     priority = 50
 
@@ -189,24 +170,10 @@ class CreatePublishRoyalRenderJob(pyblish.api.InstancePlugin,
         product_name = data["productName"]
         jobname = "Publish - {}".format(product_name)
 
-        # Transfer the environment from the original job to this dependent
-        # job, so they use the same environment
-        metadata_path, rootless_metadata_path = \
-            create_metadata_path(instance, self.anatomy)
-
-        anatomy_data = instance.context.data["anatomyData"]
-
-        environment = RREnvList({
-            "AYON_PROJECT_NAME": anatomy_data["project"]["name"],
-            "AYON_FOLDER_PATH": instance.context.data["folderPath"],
-            "AYON_TASK_NAME": anatomy_data["task"]["name"],
-            "AYON_USERNAME": anatomy_data["user"]
-        })
-
-        # add environments from self.environ_keys
-        for env_key in self.environ_keys:
-            if os.getenv(env_key):
-                environment[env_key] = os.environ[env_key]
+        environment = get_instance_job_envs(instance)
+        environment.update(JobType["PUBLISH"].get_job_env())
+        environment = RREnvList(**environment)
+        environment_serialized = environment.serialize()
 
         # pass environment keys from self.environ_job_filter
         # and collect all pre_ids to wait for
@@ -238,6 +205,7 @@ class CreatePublishRoyalRenderJob(pyblish.api.InstancePlugin,
         ]
 
         # rr requires absolut path or all jobs won't show up in rControl
+        _, rootless_metadata_path = create_metadata_path(instance, self.anatomy)
         abs_metadata_path = self.anatomy.fill_root(rootless_metadata_path)
 
         # additional logging
@@ -264,7 +232,7 @@ class CreatePublishRoyalRenderJob(pyblish.api.InstancePlugin,
             ImageExtension="",
             ImagePreNumberLetter="",
             SceneOS=get_rr_platform(),
-            rrEnvList=environment.serialize(),
+            rrEnvList=environment_serialized,
             CustomSHotName=jobname,
             CompanyProjectName=instance.context.data["projectName"],
             SubmitterParameters=submitter_parameters_job
