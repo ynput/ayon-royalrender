@@ -32,8 +32,9 @@ class RREnvList(dict):
         """Parse rrEnvList string and return it as RREnvList object."""
         out = RREnvList()
         for var in data.split("~~~"):
-            k, v = var.split("=", maxsplit=1)
-            out[k] = v
+            if "=" in var:
+                k, v = var.split("=", maxsplit=1)
+                out[k] = v
         return out
 
 
