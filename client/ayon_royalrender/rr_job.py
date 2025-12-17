@@ -80,9 +80,7 @@ class RRJob(object):
     ImageDir = attr.ib()  # type: str
     ImageFilename = attr.ib()  # type: str
     ImageExtension = attr.ib()  # type: str
-    # option to ouput more than one render path/node.
-    ChannelFilename = attr.ib() # type: str
-    ChannelExtension = attr.ib() # type: str
+
     # Some applications always add a . or _ in front of the frame number.
     # Set this variable to that character. The user can then change
     # the filename at the rrSubmitter and the submitter keeps
@@ -124,7 +122,7 @@ class RRJob(object):
     # the render commandline.
     OverrideImageFormat = attr.ib(default=None)  # type: str
 
-    # rrControl can display the name of additonal channels that are
+    # rrControl can display the name of additional channels that are
     # rendered. Each channel requires these two values. ChannelFilename
     # contains the full path.
     ChannelFilename = attr.ib(default=None)  # type: str
