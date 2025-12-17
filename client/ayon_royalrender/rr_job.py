@@ -11,12 +11,12 @@ CustomAttribute = namedtuple("CustomAttribute", ["name", "value"])
 
 
 def get_rr_platform():
-    # type: () -> str
+    # type: () -> Literal["windows", "linux", "osx"]
     """Returns name of platform used in rr jobs."""
     if sys.platform.lower() in ["win32", "win64"]:
         return "windows"
     elif sys.platform.lower() == "darwin":
-        return "mac"
+        return "osx"
     else:
         return "linux"
 
