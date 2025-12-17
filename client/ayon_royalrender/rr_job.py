@@ -46,7 +46,7 @@ class RRJob(object):
     # --------
 
     # Name of your render application. Same as in the render config file.
-    # (Maya, Softimage)
+    # (Maya, Houdini, Nuke)
     Software = attr.ib()  # type: str
 
     # The OS the scene was created on, all texture paths are set on
