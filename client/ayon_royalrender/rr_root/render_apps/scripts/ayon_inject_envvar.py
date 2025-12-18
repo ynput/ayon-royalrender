@@ -149,7 +149,7 @@ class InjectEnvironment:
         envs = {}
         for env in env_list.split("~~~"):
             if "=" in env:
-                key, value = env.split("=")
+                key, value = env.split("=", 1)
                 envs[key] = value
 
         return envs
