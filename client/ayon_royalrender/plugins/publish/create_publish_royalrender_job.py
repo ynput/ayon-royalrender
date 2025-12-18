@@ -196,11 +196,12 @@ class CreatePublishRoyalRenderJob(pyblish.api.InstancePlugin,
             SubmitterParameter(
                 "SendJobDisabled",
                 "1",
-                f"{suspend_publish}"),
+                str(suspend_publish)
+            ),
             SubmitterParameter(
                 "Priority",
                 "1",
-                f"{priority}"
+                str(priority)
             )
         ]
 
