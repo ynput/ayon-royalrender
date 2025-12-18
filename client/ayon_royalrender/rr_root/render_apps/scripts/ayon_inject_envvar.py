@@ -129,14 +129,11 @@ class InjectEnvironment:
         )
         args = parser.parse_args()
 
-        jid = args.jid
-        print(f"jid::{jid}")
-        logs.append("jid:{}".format(int(jid)))
-
-        if not self.tcp.jobList_GetInfo(int(jid)):
+        jid = int(args.jid)
+        if not self.tcp.jobList_GetInfo(jid):
             print("Error jobList_GetInfo: " + self.tcp.errorMessage())
             sys.exit()
-        job = self.tcp.jobs.getJobSend(int(jid))
+        job = self.tcp.jobs.getJobSend(jid)
         self.tcp.jobs.setPathTargetOS(job.sceneOS)
 
         return job
