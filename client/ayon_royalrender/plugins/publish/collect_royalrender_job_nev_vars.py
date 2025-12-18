@@ -15,19 +15,6 @@ class CollectRoyalRenderJobEnvVars(pyblish.api.ContextPlugin):
         # applications addon
         "AYON_APP_NAME",
 
-        # ftrack addon
-        "FTRACK_API_KEY",
-        "FTRACK_API_USER",
-        "FTRACK_SERVER",
-
-        # kitsu addon
-        "KITSU_SERVER",
-        "KITSU_LOGIN",
-        "KITSU_PWD",
-
-        # Shotgrid / Flow addon
-        "AYON_SG_USERNAME",
-
         # Not sure how this is usefull for farm, scared to remove
         "PYBLISHPLUGINPATH",
     ]
