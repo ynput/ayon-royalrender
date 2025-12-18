@@ -26,11 +26,11 @@ class CreateMayaCacheRoyalRenderJob(lib.BaseCreateRoyalRenderJob):
 
     def process(self, instance):
         """Plugin entry point."""
-        super().process(instance)
-
         if not instance.data.get("farm"):
             self.log.info("Skipping local instance.")
             return
+
+        super().process(instance)
 
         # append full path
         renders_dir = os.path.join(
