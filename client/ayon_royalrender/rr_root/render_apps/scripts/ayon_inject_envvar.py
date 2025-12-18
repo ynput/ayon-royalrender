@@ -226,8 +226,8 @@ class InjectEnvironment:
 
         platform_deny_name = f"env_denied_{platform_name}"
         platform_deny_list = env_denied_dict[platform_deny_name]
-        denied = set(platform_deny_list + env_denied_dict["env_denied_RR"])
-        print(f"denied::{denied}")
+        denied: set[str] = set(platform_deny_list)
+        denied.update(env_denied_dict["env_denied_RR"])
         for key, value in extracted_env.items():
             if key in filter_envs:
                 continue
