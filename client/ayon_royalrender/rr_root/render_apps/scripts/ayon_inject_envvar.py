@@ -243,11 +243,9 @@ class InjectEnvironment:
             fp.writelines(s + "\n" for s in lines)
 
         return os.path.normpath(rrenv_path)
-    
 
 # TODO move to Settings
-env_denied_windows = \
-[
+env_denied_windows: set[str] = {
     'Path',
     'TEMP',
     'TMP',
@@ -292,11 +290,10 @@ env_denied_windows = \
     #Windows11 (RR-Holger__RR-AYON__WIN)
     'OneDrive',
     'OS',
-]
+}
 
 
-env_denied_linux = \
-[
+env_denied_linux: set[str] = {
     'PATH',
     'TEMP',
     'TMP',
@@ -390,11 +387,10 @@ env_denied_linux = \
     'QT_ACCESSIBILITY',
     'XDG_CONFIG_DIRS',
 
-]
+}
 
 
-env_denied_darwin = \
-[
+env_denied_darwin: set[str] = {
     'PATH',
     'TEMP',
     'TMP',
@@ -426,11 +422,10 @@ env_denied_darwin = \
     'LaunchInstanceID',
     'SECURITYSESSIONID',
 
-]
+}
 
 
-env_denied_RR = \
-[
+env_denied_RR: set[str] = {
     'rrExeVer',
     'rrExeVerMajor',
     'rrExeVerMinor',
@@ -500,9 +495,14 @@ env_denied_RR = \
     'rrLocalExeDir',
     'rrLocalPrefs',
     'rrLocalPlugins',
-]
+}
 
-env_denied_allOS = list(set(env_denied_windows + env_denied_linux + env_denied_darwin + env_denied_RR))
+env_denied_allOS = (
+    env_denied_windows |
+    env_denied_linux |
+    env_denied_darwin |
+    env_denied_RR
+)
 
 env_denied_dict = { 
     "env_denied_windows": env_denied_windows,
