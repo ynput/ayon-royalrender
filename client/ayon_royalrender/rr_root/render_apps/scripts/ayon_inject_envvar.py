@@ -217,7 +217,7 @@ class InjectEnvironment:
 
         lines = []
         platform_name = platform.system().lower()
-        if platform_name:
+        if platform_name == "windows":
             env_command = "set"
             ext = "bat"
         else:
