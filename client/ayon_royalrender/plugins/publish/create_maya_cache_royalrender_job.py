@@ -29,8 +29,8 @@ class CreateMayaCacheRoyalRenderJob(lib.BaseCreateRoyalRenderJob):
         super().process(instance)
 
         if not instance.data.get("farm"):
-                self.log.info("Skipping local instance.")
-                return
+            self.log.info("Skipping local instance.")
+            return
 
         # append full path
         renders_dir = os.path.join(
