@@ -26,7 +26,7 @@ class CreateMayaCacheRoyalRenderJob(lib.BaseCreateRoyalRenderJob):
 
     def process(self, instance):
         """Plugin entry point."""
-        super(CreateMayaCacheRoyalRenderJob, self).process(instance)
+        super().process(instance)
 
         if not instance.data.get("farm"):
                 self.log.info("Skipping local instance.")
