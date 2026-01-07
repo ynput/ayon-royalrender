@@ -37,10 +37,11 @@ class CreatePublishRoyalRenderJob(pyblish.api.InstancePlugin,
     order = pyblish.api.IntegratorOrder + 0.2
     icon = "tractor"
     targets = ["local"]
-    hosts = ["fusion", "maya", "nuke", "celaction", "aftereffects", "harmony"]
-    families = ["render.farm", "prerender.farm", "render.frames_farm",
-                "renderlayer", "imagesequence", "vrayscene"]
+    hosts = ["fusion", "maya", "nuke", "celaction", "aftereffects", "harmony", "houdini"]
+    families = ["render.farm", "prerender.farm", "render.frames_farm", "render",
+                "renderlayer", "imagesequence", "vrayscene", "usd.render", "karma", "usd_karma"]
     aov_filter = {"maya": [r".*([Bb]eauty).*"],
+                  "houdini": [r".*([Bb]eauty).*"],
                   "aftereffects": [r".*"],  # for everything from AE
                   "harmony": [r".*"],  # for everything from AE
                   "celaction": [r".*"]}

@@ -30,7 +30,7 @@ class BaseCreateRoyalRenderJob(
 
     label = "Create Nuke Render job in RR"
     order = pyblish.api.IntegratorOrder + 0.1
-    hosts = ["nuke"]
+    hosts = ["nuke", "houdini"]
     families = ["render", "prerender"]
     targets = ["local"]
     optional = True
