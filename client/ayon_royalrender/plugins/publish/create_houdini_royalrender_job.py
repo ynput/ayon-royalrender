@@ -235,7 +235,7 @@ class CreateHoudiniRoyalRenderJob(lib.BaseCreateRoyalRenderJob):
         ayon_environment = {
             "AYON_SERVER_URL": os.environ["AYON_SERVER_URL"],
             "AYON_API_KEY": os.environ["AYON_API_KEY"],
-            "AYON_BUNDLE_NAME": job_envs["AYON_BUNDLE_NAME"],
+            "AYON_STUDIO_BUNDLE_NAME": job_envs["AYON_STUDIO_BUNDLE_NAME"],
         }
         self.log.info("Ayon launch environments:: {}".format(ayon_environment))
         environment = os.environ.copy()
@@ -254,10 +254,12 @@ class CreateHoudiniRoyalRenderJob(lib.BaseCreateRoyalRenderJob):
         # tempfile.TemporaryFile cannot be used because of locking
         export_url = self._get_export_url()
 
-        args = [executable, "--headless", "extractenvironments", export_url]
+        args = [executable, "--headless", "addon", "applications", "extractenvironments", export_url]
 
         if all(context.values()):
             for key, value in context.items():
+                if key == "asset":
+                    key = "folder"
                 args.extend(["--{}".format(key), value])
 
         environments = self._get_launch_environments(job)

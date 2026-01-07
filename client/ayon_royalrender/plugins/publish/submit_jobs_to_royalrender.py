@@ -102,10 +102,10 @@ class SubmitJobsToRoyalRender(pyblish.api.ContextPlugin):
         if auto_delete:
             return [
                 SubmitterParameter("RequiredMemory", "0"),
-                SubmitterParameter("PPAyoninjectenvvar", "1~0"),
+                SubmitterParameter("PPAyoninjectenvvar", "1~1"),
                 SubmitterParameter("-AutoDeleteEnabled")
             ]
         return [
             SubmitterParameter("RequiredMemory", "0"),
-            SubmitterParameter("PPAyoninjectenvvar", "1~0")
+            SubmitterParameter("PPAyoninjectenvvar", "1~1")
         ]

@@ -76,7 +76,7 @@ class CreatePublishRoyalRenderJob(pyblish.api.InstancePlugin,
         "AYON_SG_USERNAME",
         "AYON_VERSION",
         "USE_AYON_SERVER",
-        "AYON_BUNDLE_NAME",
+        "AYON_STUDIO_BUNDLE_NAME",
         "AYON_USE_STAGING",
         "AYON_IN_TESTS",
     ]
