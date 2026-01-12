@@ -51,11 +51,7 @@ class RRJob(object):
 
     # The OS the scene was created on, all texture paths are set on
     # that OS. Possible values are windows, linux, osx
-    SceneOS = attr.ib()  # type: Literal[
-        "windows", "linux", "osx",
-        # These alternatives also work
-        "win", "lx", "mac"
-    ]
+    SceneOS = attr.ib()  # type: Literal["windows", "linux", "osx", "win", "lx", "mac"]
 
     # Renderer you use. Same as in the render config file
     # (VRay, Mental Ray, Arnold)
