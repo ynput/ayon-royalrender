@@ -211,6 +211,7 @@ class BaseCreateRoyalRenderJob(
                 "AYON_APP_NAME": os.environ["AYON_APP_NAME"],
                 "AYON_RENDER_JOB": "1",
                 "AYON_STUDIO_BUNDLE_NAME": os.environ["AYON_STUDIO_BUNDLE_NAME"],
+                "AYON_BUNDLE_NAME": os.environ["AYON_BUNDLE_NAME"],
             }
         )
 
