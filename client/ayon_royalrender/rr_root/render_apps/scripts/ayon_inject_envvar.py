@@ -111,7 +111,7 @@ class InjectEnvironment:
         envs = self._get_job_environments()
         return {
             "project": envs["AYON_PROJECT_NAME"],
-            "asset": envs["AYON_FOLDER_PATH"],
+            "folder": envs["AYON_FOLDER_PATH"],
             "task": envs["AYON_TASK_NAME"],
             "app": envs["AYON_APP_NAME"],
             "envgroup": "farm",
@@ -169,7 +169,7 @@ class InjectEnvironment:
         environment.update(ayon_environment)
         return environment
 
-    def _get_export_url(self):
+    def _get_export_path(self):
         """Returns unique path with extracted env variables from Ayon."""
         temp_file_name = "{}_{}.json".format(
             datetime.utcnow().strftime("%Y%m%d%H%M%S%f"), str(uuid.uuid1())
@@ -179,9 +179,16 @@ class InjectEnvironment:
 
     def _extract_environments(self, executable, context):
         # tempfile.TemporaryFile cannot be used because of locking
-        export_url = self._get_export_url()
+        export_path = self._get_export_path()
 
-        args = [executable, "--headless", "extractenvironments", export_url]
+        args = [
+            executable,
+            "--headless",
+            "addon",
+            "applications",
+            "extractenvironments",
+            export_path
+        ]
 
         if all(context.values()):
             for key, value in context.items():
@@ -198,12 +205,12 @@ class InjectEnvironment:
         )
         output, error = proc.communicate()
 
-        if not os.path.exists(export_url):
+        if not os.path.exists(export_path):
             logs.append("output::{}".format(output))
             logs.append("error::{}".format(error))
             raise RuntimeError("Extract failed with {}".format(error))
 
-        with open(export_url) as json_file:
+        with open(export_path) as json_file:
             return json.load(json_file)
 
     def _create_rrEnv(self, meta_dir, extracted_env):
