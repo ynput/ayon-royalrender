@@ -10,6 +10,7 @@ class CreateNukeRoyalRenderJob(lib.BaseCreateRoyalRenderJob):
     label = "Create Nuke Render job in RR"
     hosts = ["nuke"]
     families = ["render", "prerender"]
+    targets = ["local"]
 
     def process(self, instance):
         super(CreateNukeRoyalRenderJob, self).process(instance)

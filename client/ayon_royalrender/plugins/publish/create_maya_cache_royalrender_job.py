@@ -12,6 +12,7 @@ class CreateMayaCacheRoyalRenderJob(lib.BaseCreateRoyalRenderJob):
     label = "Create Maya Cache job in RR"
     hosts = ["maya"]
     families = ["pointcache"]
+    targets = ["local"]
 
     def update_job_with_host_specific(self, instance, job):
         job.Software = "Maya"
