@@ -50,6 +50,7 @@ class InjectEnvironment:
     def __init__(self):
         self.meta_dir = None
         self.tcp = self.tcp_connect()
+        self.job = self._get_job()
 
     def tcp_connect(self):
         tcp = rr_connect.server_connect(user_name=None)
@@ -87,10 +88,7 @@ class InjectEnvironment:
 
     def _get_metadata_dir(self):
         """Get folder where metadata.json and renders should be produced."""
-        sys.path.append(os.environ["RR_ROOT"] + "/render_apps/scripts")
-        job = self._get_job()
-
-        new_path = job.imageDir
+        new_path = self.job.imageDir
 
         logs.append(f"_get_metadata_dir::{new_path}")
         return new_path
@@ -513,7 +511,13 @@ if __name__ == "__main__":
         tmpdir = injector.meta_dir
     except Exception as exp:
         msg = f"Error happened::{str(exp)}"
-        raise RuntimeError(msg)
+        jobsApply = []
+        jobsApply.append(injector.job.ID)
+        if not injector.tcp.jobSendCommand(
+            jobsApply, rrJob._LogMessage.lDisable, 0
+        ):
+            print("Error jobSendCommand: " + injector.tcp.errorMessage())
+        raise Exception(msg) or sys.exit()
 
     finally:
         if tmpdir is None:
