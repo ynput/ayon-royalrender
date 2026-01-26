@@ -4,7 +4,6 @@ import sys
 from xml.dom import minidom as md
 import attr
 from collections import namedtuple, OrderedDict
-from typing import Literal
 
 
 CustomAttribute = namedtuple("CustomAttribute", ["name", "value"])
