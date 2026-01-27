@@ -122,7 +122,7 @@ class InjectEnvironment:
         parser = argparse.ArgumentParser()
         parser.add_argument("-jid")
         parser.add_argument(
-            "filepath", 
+            "filepath",
             help="Where script file with environment will be saved"
         )
         args = parser.parse_args()

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Python wrapper for RoyalRender XML job file."""
 import sys
-from typing import Optional
+from typing import Optional  # noqa: F401
 from xml.dom import minidom as md
 import attr
 from collections import namedtuple, OrderedDict
