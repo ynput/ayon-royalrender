@@ -11,12 +11,12 @@ CustomAttribute = namedtuple("CustomAttribute", ["name", "value"])
 
 
 def get_rr_platform():
-    # type: () -> str
+    # type: () -> Literal["windows", "linux", "osx"]
     """Returns name of platform used in rr jobs."""
     if sys.platform.lower() in ["win32", "win64"]:
         return "windows"
     elif sys.platform.lower() == "darwin":
-        return "mac"
+        return "osx"
     else:
         return "linux"
 
@@ -47,12 +47,12 @@ class RRJob(object):
     # --------
 
     # Name of your render application. Same as in the render config file.
-    # (Maya, Softimage)
+    # (Maya, Houdini, Nuke)
     Software = attr.ib()  # type: str
 
     # The OS the scene was created on, all texture paths are set on
     # that OS. Possible values are windows, linux, osx
-    SceneOS = attr.ib()  # type: str
+    SceneOS = attr.ib()  # type: Literal["windows", "linux", "osx", "win", "lx", "mac"]
 
     # Renderer you use. Same as in the render config file
     # (VRay, Mental Ray, Arnold)
@@ -82,9 +82,7 @@ class RRJob(object):
     ImageDir = attr.ib()  # type: str
     ImageFilename = attr.ib()  # type: str
     ImageExtension = attr.ib()  # type: str
-    # option to ouput more than one render path/node.
-    ChannelFilename = attr.ib() # type: str
-    ChannelExtension = attr.ib() # type: str
+
     # Some applications always add a . or _ in front of the frame number.
     # Set this variable to that character. The user can then change
     # the filename at the rrSubmitter and the submitter keeps
@@ -126,7 +124,7 @@ class RRJob(object):
     # the render commandline.
     OverrideImageFormat = attr.ib(default=None)  # type: Optional[str]
 
-    # rrControl can display the name of additonal channels that are
+    # rrControl can display the name of additional channels that are
     # rendered. Each channel requires these two values. ChannelFilename
     # contains the full path.
     ChannelFilename = attr.ib(default=None)  # type: Optional[str]

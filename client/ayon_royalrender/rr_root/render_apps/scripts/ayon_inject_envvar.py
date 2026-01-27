@@ -11,7 +11,7 @@ import platform
 mod_dir = os.path.join(os.environ["RR_ROOT"], "SDK", "External", "Python")
 if mod_dir not in sys.path:
     sys.path.append(mod_dir)
-import rr_python_utils.connection as rr_connect
+import rr_python_utils.connection as rr_connect  # noqa: E402
 
 logs = []
 
