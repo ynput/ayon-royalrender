@@ -223,7 +223,13 @@ class CreatePublishRoyalRenderJob(pyblish.api.InstancePlugin,
             SeqEnd=1,
             SeqStep=1,
             SeqFileOffset=0,
-            Version=os.environ["AYON_BUNDLE_NAME"],
+            # Pass the launcher executable version because Royal Render will
+            # use pattern matching to find the relevant executable if it's
+            # configured with a path like:
+            # `C:\Program Files\Ynput\AYON *\ayon_console.exe.`
+            # However we do recommend configuring pointing it to the shim
+            # location so the executable is a versionless path.
+            Version=os.environ["AYON_VERSION"],
             SceneName=abs_metadata_path,
             # command line arguments
             CustomAddCmdFlags=" ".join(args),

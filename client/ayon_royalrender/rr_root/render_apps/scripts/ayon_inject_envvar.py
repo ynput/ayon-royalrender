@@ -11,7 +11,7 @@ import platform
 mod_dir = os.path.join(os.environ["RR_ROOT"], "SDK", "External", "Python")
 if mod_dir not in sys.path:
     sys.path.append(mod_dir)
-import rr_python_utils.connection as rr_connect
+import rr_python_utils.connection as rr_connect  # noqa: E402
 import rrJob
 
 logs = []
@@ -123,7 +123,7 @@ class InjectEnvironment:
         parser = argparse.ArgumentParser()
         parser.add_argument("-jid")
         parser.add_argument(
-            "filepath", 
+            "filepath",
             help="Where script file with environment will be saved"
         )
         args = parser.parse_args()

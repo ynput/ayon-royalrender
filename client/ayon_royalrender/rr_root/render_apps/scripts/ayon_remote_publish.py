@@ -6,12 +6,12 @@ import pyblish.util
 
 import maya.standalone
 
-maya.standalone.initialize(name="python")
-from maya import cmds
-
 from ayon_core.lib import Logger
 from ayon_core.pipeline.create import CreateContext
 from ayon_core.pipeline import registered_host
+
+maya.standalone.initialize(name="python")
+from maya import cmds  # noqa: E402
 
 
 def remote_publish(scene_path):
