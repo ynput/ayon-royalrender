@@ -19,12 +19,17 @@ class CreateNukeRoyalRenderJob(lib.BaseCreateRoyalRenderJob):
             self.log.info("Skipping local instance.")
             return
         # redefinition of families
-        if "render" in instance.data["productType"]:
+        product_base_type = instance.data.get("productBaseType")
+        if not product_base_type:
+            product_base_type = instance.data["productType"]
+        if "render" in product_base_type:
             instance.data["productType"] = "write"
+            instance.data["productBaseType"] = "write"
             instance.data["family"] = "write"
             instance.data["families"].insert(0, "render2d")
-        elif "prerender" in instance.data["productType"]:
+        elif "prerender" in product_base_type:
             instance.data["productType"] = "write"
+            instance.data["productBaseType"] = "write"
             instance.data["family"] = "write"
             instance.data["families"].insert(0, "prerender")
 

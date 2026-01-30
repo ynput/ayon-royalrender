@@ -170,6 +170,7 @@ class CollectSequencesFromJob(pyblish.api.ContextPlugin):
                 self.log.info("attaching review")
                 families.append("review")
 
+            product_base_type = families[0]
             for collection in collections:
                 instance = context.create_instance(str(collection))
                 self.log.info("Collection: %s" % list(collection))
@@ -191,8 +192,9 @@ class CollectSequencesFromJob(pyblish.api.ContextPlugin):
 
                 instance.data.update({
                     "name": str(collection),
-                    "productType": families[0],
-                    "family": families[0],
+                    "productType": product_base_type,
+                    "productBaseType": product_base_type,
+                    "family": product_base_type,
                     "families": list(families),
                     "productName": product_name,
                     "folderPath": data.get(
