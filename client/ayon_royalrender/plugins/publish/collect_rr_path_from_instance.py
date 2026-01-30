@@ -23,7 +23,7 @@ class CollectRRPathFromInstance(pyblish.api.InstancePlugin):
 
     order = pyblish.api.CollectorOrder
     label = "Collect Royal Render path name from the Instance"
-    families = ["render", "prerender", "renderlayer"]
+    families = ["render", "prerender", "renderlayer", "pointcache"]
 
     def process(self, instance):
         instance.data["rr_root"] = self._collect_root(instance)
