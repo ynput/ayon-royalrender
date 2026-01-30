@@ -12,6 +12,7 @@ class CreateMayaRoyalRenderJob(lib.BaseCreateRoyalRenderJob):
     label = "Create Maya Render job in RR"
     hosts = ["maya"]
     families = ["renderlayer"]
+    targets = ["local"]
 
     def update_job_with_host_specific(self, instance, job):
         job.Software = "Maya"

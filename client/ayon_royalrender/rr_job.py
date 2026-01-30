@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """Python wrapper for RoyalRender XML job file."""
 import sys
+from typing import Optional  # noqa: F401
 from xml.dom import minidom as md
 import attr
 from collections import namedtuple, OrderedDict
@@ -32,8 +33,9 @@ class RREnvList(dict):
         """Parse rrEnvList string and return it as RREnvList object."""
         out = RREnvList()
         for var in data.split("~~~"):
-            k, v = var.split("=", maxsplit=1)
-            out[k] = v
+            if "=" in var:
+                k, v = var.split("=", maxsplit=1)
+                out[k] = v
         return out
 
 
@@ -96,14 +98,14 @@ class RRJob(object):
 
     # The database of your scene file. In Maya and XSI called "project",
     # in Lightwave "content dir"
-    SceneDatabaseDir = attr.ib(default=None)  # type: str
+    SceneDatabaseDir = attr.ib(default=None)  # type: Optional[str]
 
     # Required if you want to split frames on multiple clients
-    ImageWidth = attr.ib(default=None)  # type: int
-    ImageHeight = attr.ib(default=None)  # type: int
-    Camera = attr.ib(default=None)  # type: str
-    Layer = attr.ib(default=None)  # type: str
-    Channel = attr.ib(default=None)  # type: str
+    ImageWidth = attr.ib(default=None)  # type: Optional[int]
+    ImageHeight = attr.ib(default=None)  # type: Optional[int]
+    Camera = attr.ib(default=None)  # type: Optional[str]
+    Layer = attr.ib(default=None)  # type: Optional[str]
+    Channel = attr.ib(default=None)  # type: Optional[str]
 
     # Optional
     # --------
@@ -112,26 +114,26 @@ class RRJob(object):
     # E.g. If you render with mentalRay, then add mentalRay. If you render
     # with Nuke and you use Furnace plugins in your comp, add Furnace.
     # TODO: determine how this work for multiple plugins
-    RequiredPlugins = attr.ib(default=None)  # type: str
+    RequiredPlugins = attr.ib(default=None)  # type: Optional[str]
 
     # Frame Padding of the frame number in the rendered filename.
     # Some render config files are setting the padding at render time.
-    ImageFramePadding = attr.ib(default=None)  # type: int
+    ImageFramePadding = attr.ib(default=None)  # type: Optional[int]
 
     # Some render applications support overriding the image format at
     # the render commandline.
-    OverrideImageFormat = attr.ib(default=None)  # type: str
+    OverrideImageFormat = attr.ib(default=None)  # type: Optional[str]
 
     # rrControl can display the name of additional channels that are
     # rendered. Each channel requires these two values. ChannelFilename
     # contains the full path.
-    ChannelFilename = attr.ib(default=None)  # type: str
-    ChannelExtension = attr.ib(default=None)  # type: str
+    ChannelFilename = attr.ib(default=None)  # type: Optional[str]
+    ChannelExtension = attr.ib(default=None)  # type: Optional[str]
 
     # A value between 0 and 255. Each job gets the Pre ID attached as small
     # letter to the main ID. A new main ID is generated for every machine
     # for every 5/1000s.
-    PreID = attr.ib(default=None)  # type: int
+    PreID = attr.ib(default=None)  # type: Optional[int]
 
     # When the job is received by the server, the server checks for other
     # jobs send from this machine. If a job with the PreID was found, then
@@ -150,30 +152,32 @@ class RRJob(object):
     CustomAttributes = attr.ib(factory=list)  # type: list
 
     # This is used to hold command line arguments for Execute job
-    CustomAddCmdFlags = attr.ib(default=None)  # type: str
+    CustomAddCmdFlags = attr.ib(default=None)  # type: Optional[str]
 
     # Additional information for subsequent publish script and
     # for better display in rrControl
-    UserName = attr.ib(default=None)  # type: str
-    CustomSeQName = attr.ib(default=None)  # type: str
-    CustomSHotName = attr.ib(default=None)  # type: str
-    CustomVersionName = attr.ib(default=None)  # type: str
-    CustomUserInfo = attr.ib(default=None)  # type: str
-    SubmitMachine = attr.ib(default=None)  # type: str
+    UserName = attr.ib(default=None)  # type: Optional[str]
+    CustomSeQName = attr.ib(default=None)  # type: Optional[str]
+    CustomSHotName = attr.ib(default=None)  # type: Optional[str]
+    CustomVersionName = attr.ib(default=None)  # type: Optional[str]
+    CustomUserInfo = attr.ib(default=None)  # type: Optional[str]
+    SubmitMachine = attr.ib(default=None)  # type: Optional[str]
     Color_ID = attr.ib(default=2)  # type: int
-    CompanyProjectName = attr.ib(default=None)  # type: str
+    CompanyProjectName = attr.ib(default=None)  # type: Optional[str]
 
-    RequiredLicenses = attr.ib(default=None)  # type: str
+    RequiredLicenses = attr.ib(default=None)  # type: Optional[str]
 
     # Additional frame info
     Priority = attr.ib(default=50)  # type: int
-    TotalFrames = attr.ib(default=None)  # type: int
-    Tiled = attr.ib(default=None)  # type: str
+    TotalFrames = attr.ib(default=None)  # type: Optional[int]
+    Tiled = attr.ib(default=None)  # type: Optional[str]
 
     # Environment
     # only used in RR 8.3 and newer
-    rrEnvList = attr.ib(default=None, type=str)  # type: str
-    rrEnvFile = attr.ib(default=None, type=str)  # type: str
+    rrEnvList = attr.ib(default=None, type=str)  # type: Optional[str]
+    rrEnvFile = attr.ib(default=None, type=str)  # type: Optional[str]
+
+    CustomScriptFile = attr.ib(default=None)  # type: Optional[str]
 
 
 class SubmitterParameter:

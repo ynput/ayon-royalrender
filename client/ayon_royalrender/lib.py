@@ -3,6 +3,8 @@
 import os
 import re
 from datetime import datetime
+from enum import Enum
+from typing import Optional, Any, Dict
 
 import pyblish.api
 
@@ -154,7 +156,13 @@ class BaseCreateRoyalRenderJob(
             instance.data["rrJobs"] = []
 
     def get_job(
-        self, instance, script_path, render_path, node_name, single=False
+        self,
+        instance,
+        script_path,
+        render_path,
+        node_name,
+        single=False,
+        job_type="RENDER"
     ):
         """Get RR job based on current instance.
 
@@ -201,20 +209,17 @@ class BaseCreateRoyalRenderJob(
         )
         instance.data["expectedFiles"].extend(expected_files)
 
-        # anatomy_data = instance.context.data["anatomyData"]
-        environment = RREnvList(
-            {
-                "AYON_PROJECT_NAME": instance.context.data["projectName"],
-                "AYON_FOLDER_PATH": instance.context.data["folderPath"],
-                "AYON_TASK_NAME": instance.context.data["task"],
-                "AYON_USERNAME": instance.context.data["user"],
-                "AYON_APP_NAME": os.environ["AYON_APP_NAME"],
-                "AYON_RENDER_JOB": "1",
-                "AYON_BUNDLE_NAME": os.environ["AYON_BUNDLE_NAME"],
-            }
-        )
-
         render_dir = render_dir.replace("\\", "/")
+
+        environment = get_instance_job_envs(instance)
+        environment.update(JobType[job_type].get_job_env())
+        environment = RREnvList(**environment)
+        environment_serialized = environment.serialize()
+
+        exported_env_script_path = f"{render_dir}/rrEnv.allos"
+        environment_serialized += rf'~~~[exec] "<rrLocalBin><OsxApp rrPythonconsole>"  <rrLocalRenderScripts>ayon_inject_envvar.py -jid <JID> {exported_env_script_path}'
+        environment_serialized += rf'~~~[exec] {exported_env_script_path}'
+
         job = RRJob(
             Software="",
             Renderer="",
@@ -226,7 +231,7 @@ class BaseCreateRoyalRenderJob(
             Version=0,
             SceneName=script_path,
             IsActive=True,
-            ImageDir=render_dir.replace("\\", "/"),
+            ImageDir=render_dir,
             ImageFilename=file_name,
             ImageExtension=file_ext,
             ImagePreNumberLetter="",
@@ -236,12 +241,11 @@ class BaseCreateRoyalRenderJob(
             SceneDatabaseDir=script_path,
             CustomSHotName=jobname,
             CompanyProjectName=instance.context.data["projectName"],
-            ImageWidth=instance.data["resolutionWidth"],
-            ImageHeight=instance.data["resolutionHeight"],
+            ImageWidth=instance.data.get("resolutionWidth"),
+            ImageHeight=instance.data.get("resolutionHeight"),
             CustomAttributes=custom_attributes,
             SubmitterParameters=submitter_parameters_job,
-            rrEnvList=environment.serialize(),
-            rrEnvFile=os.path.join(render_dir, "rrEnv.rrEnv"),
+            rrEnvList=environment_serialized,
         )
 
         return job
@@ -322,3 +326,51 @@ class BaseCreateRoyalRenderJob(
             path = path.replace(str(first_frame).zfill(padding), "#" * padding)
 
         return path
+
+
+def get_instance_job_envs(instance) -> "dict[str, str]":
+    """Add all job environments as specified on the instance and context.
+
+    Any instance `job_env` vars will override the context `job_env` vars.
+    """
+    # Avoid import from 'ayon_core.pipeline'
+    from ayon_core.pipeline.publish import FARM_JOB_ENV_DATA_KEY
+
+    env = {}
+    for job_env in [
+        instance.context.data.get(FARM_JOB_ENV_DATA_KEY, {}),
+        instance.data.get(FARM_JOB_ENV_DATA_KEY, {})
+    ]:
+        if job_env:
+            env.update(job_env)
+
+    # Return the dict sorted just for readability in future logs
+    if env:
+        env = dict(sorted(env.items()))
+
+    return env
+
+
+class JobType(str, Enum):
+    UNDEFINED = "undefined"
+    RENDER = "render"
+    PUBLISH = "publish"
+    REMOTE = "remote"
+
+    def get_job_env(self) -> Dict[str, str]:
+        return {
+            "AYON_PUBLISH_JOB": str(int(self == JobType.PUBLISH)),
+            "AYON_RENDER_JOB": str(int(self == JobType.RENDER)),
+            "AYON_REMOTE_PUBLISH": str(int(self == JobType.REMOTE)),
+        }
+
+    @classmethod
+    def get(
+        cls, value: Any, default: Optional[Any] = None
+    ) -> "JobType":
+        try:
+            return cls(value)
+        except ValueError:
+            if default is None:
+                return cls.UNDEFINED
+            return default
