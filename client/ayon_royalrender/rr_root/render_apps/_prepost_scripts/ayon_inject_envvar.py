@@ -70,7 +70,7 @@ class InjectEnvironment:
             logs.append("Not a ayon render job, skipping.")
             return
 
-        self._check_launch_environemnt()
+        self._check_launch_environment()
 
         context = self._get_context()
 
@@ -79,8 +79,9 @@ class InjectEnvironment:
 
         logs.append("executable {}".format(executable))
 
+        print("Pre Extracting environments - delme")
         extracted_env = self._extract_environments(executable, context)
-
+        print("Pre Creating rrEnv file - delme")
         rrEnv_path = self._create_rrEnv(meta_dir, extracted_env)
         print(f"Ayon job environment exported to rrEnv file:\n{rrEnv_path}")
         logs.append(f"InjectEnvironment ending, rrEnv file {rrEnv_path}")
@@ -95,7 +96,7 @@ class InjectEnvironment:
         logs.append(f"_get_metadata_dir::{new_path}")
         return new_path
 
-    def _check_launch_environemnt(self):
+    def _check_launch_environment(self):
         required_envs = ["AYON_SERVER_URL", "AYON_API_KEY", "AYON_EXECUTABLE"]
         missing = []
         for key in required_envs:
@@ -161,6 +162,7 @@ class InjectEnvironment:
         ayon_environment = {
             "AYON_SERVER_URL": os.environ["AYON_SERVER_URL"],
             "AYON_API_KEY": os.environ["AYON_API_KEY"],
+            "AYON_STUDIO_BUNDLE_NAME": job_envs["AYON_STUDIO_BUNDLE_NAME"],
             "AYON_BUNDLE_NAME": job_envs["AYON_BUNDLE_NAME"],
         }
         logs.append("Ayon launch environments:: {}".format(ayon_environment))
@@ -179,12 +181,17 @@ class InjectEnvironment:
     def _extract_environments(self, executable, context):
         # tempfile.TemporaryFile cannot be used because of locking
         export_url = self._get_export_url()
+        print(f"Export URL: {export_url}")
 
-        args = [executable, "--headless", "extractenvironments", export_url]
+        args = [executable, "--headless", "addon", "applications", "extractenvironments", export_url]
 
         if all(context.values()):
             for key, value in context.items():
+                if key == "asset":
+                    key = "folder"
                 args.extend(["--{}".format(key), value])
+
+        print(f"Args: {args}")
 
         environments = self._get_launch_environments()
 
@@ -196,7 +203,8 @@ class InjectEnvironment:
             stderr=subprocess.PIPE,
         )
         output, error = proc.communicate()
-
+        print(f"Output: {output}")
+        print(f"Error: {error}")
         if not os.path.exists(export_url):
             logs.append("output::{}".format(output))
             logs.append("error::{}".format(error))
