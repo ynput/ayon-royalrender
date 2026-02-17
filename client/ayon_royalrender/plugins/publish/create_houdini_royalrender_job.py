@@ -44,21 +44,13 @@ class CreateHoudiniRoyalRenderJob(lib.BaseCreateRoyalRenderJob):
         Raises:
             None.
         """
-        job.Software = "Houdini"
+        job.Software = "USD_StdA_single"  # HuskKarma
+        # job.Software = "Arnold-singlefile-husk"    #HuskArnold
+        instance.data["renderer"] = job.Software
 
-        # Renderer name: try instance key first, fall back to family
-        renderer = (
-            instance.data.get("renderer")
-            or instance.data.get("family")
-            or "houdini"
-        )
-        self.log.info(f"RENDERER: {renderer}")
-        print(f"RENDERER: {renderer}")
-        if renderer == "karma_rop":
-            self.log.info(f"renderer: {renderer} -> usd_karma")
-            print(f"renderer: {renderer} -> usd_karma")
-            renderer = "usd_karma"
-        job.Renderer = str(renderer)
+        job.rendererLicense = "/Karma" #Karma
+        # job.Renderer = "HtoA" # Husk Arnold
+        job.SceneName = str(instance.data.get("ifdFile"))
 
         # Houdini version
         version = os.getenv("HOUDINI_VERSION", "")
@@ -110,8 +102,7 @@ class CreateHoudiniRoyalRenderJob(lib.BaseCreateRoyalRenderJob):
             return hou.hipFile.path()
         except Exception:
             return (
-                os.environ.get("HIPFILE")
-                or instance.context.data.get("currentFile")
+                instance.data.get("ifdFile")
                 or ""
             )
 
@@ -184,6 +175,7 @@ class CreateHoudiniRoyalRenderJob(lib.BaseCreateRoyalRenderJob):
         )
         layer_name = f"/out/{self._normalize_layer_name(layer_name)}"
 
+        self.log.info(f"instance_data:: {instance.data}")
         self.log.info(f"layer_name::{layer_name}")
 
         # Build RR job using the common helper from the base class
