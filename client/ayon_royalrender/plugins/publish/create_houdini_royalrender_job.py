@@ -44,12 +44,22 @@ class CreateHoudiniRoyalRenderJob(lib.BaseCreateRoyalRenderJob):
         Raises:
             None.
         """
-        job.Software = "USD_StdA_single"  # HuskKarma
-        # job.Software = "Arnold-singlefile-husk"    #HuskArnold
+        rop = self.get_rop(instance)
+        renderer = self.get_renderer(rop)
+        if renderer.startswith("BRAY_HdKarma"):
+            job.Software = "USD_StdA_single"  # HuskKarma
+            job.rendererLicense = "/Karma" #Karma
+        elif renderer.startswith("HdArnoldRendererPlugin"):
+            job.Software = "Arnold-singlefile-husk"  # HuskArnold
+            job.Renderer = "HtoA"  # Husk Arnold
+
+        if renderer == "BRAY_HdKarmaXPU":
+            job.CustomKarmaRenderer = "XPU"
+
         instance.data["renderer"] = job.Software
 
-        job.rendererLicense = "/Karma" #Karma
-        # job.Renderer = "HtoA" # Husk Arnold
+        job.CustomRenderSettings = self.get_rendersettings(rop)
+        job.Camera = self.get_camera(rop, job.CustomRenderSettings)
         job.SceneName = str(instance.data.get("ifdFile"))
 
         # Houdini version
@@ -174,9 +184,6 @@ class CreateHoudiniRoyalRenderJob(lib.BaseCreateRoyalRenderJob):
             or os.path.splitext(os.path.basename(self.scene_path))[0]
         )
         layer_name = f"/out/{self._normalize_layer_name(layer_name)}"
-
-        self.log.info(f"instance_data:: {instance.data}")
-        self.log.info(f"layer_name::{layer_name}")
 
         # Build RR job using the common helper from the base class
         job = self.get_job(instance, self.scene_path, first_file_path, layer_name)
@@ -323,6 +330,111 @@ class CreateHoudiniRoyalRenderJob(lib.BaseCreateRoyalRenderJob):
             fp.writelines(s + "\n" for s in lines)
 
         return os.path.normpath(rrenv_path)
+
+    def get_rop(self, instance):
+        """Given an instance, returns the USD Render ROP node."""
+        try:
+            import hou
+
+            # Get the ROP node from instance
+            rop_path = instance.data.get("instance_node")
+            if not rop_path:
+                raise RuntimeError("No instance_node found in instance data")
+
+            rop = hou.node(rop_path)
+            return rop
+        except RuntimeError as exc:
+            raise
+
+    def get_renderer(self, rop):
+        """Given a USD Render ROP node, returns the renderer name."""
+        try:
+            import hou
+            if rop:
+                renderer_parm = rop.parm("renderer")
+                if renderer_parm:
+                    return renderer_parm.evalAsString()
+            raise RuntimeError(f"Failed to get renderer: {rop}")
+
+        except RuntimeError as exc:
+            raise
+
+    def get_rendersettings(self, rop):
+        """
+        Retrieves the LOP path to the render settings from the instance node.
+
+        This method accesses the USD Render ROP node in Houdini and attempts to find
+        the render settings path. It looks for the render
+        settings primitive path configured on the USD Render ROP node.
+
+        Args:
+            rop: The ROP node.
+
+        Returns:
+            str: The LOP path to the render settings, or an empty string if not found.
+        """
+        if not rop:
+            raise RuntimeWarning(f"Could not find node at path: {rop.path()}")
+
+        rendersettings_parm = rop.parm("rendersettings")
+        if rendersettings_parm:
+            rendersettings_path = rendersettings_parm.eval()
+            self.log.info(f"Found render settings path: {rendersettings_path}")
+            return rendersettings_path
+
+        raise RuntimeError(f"No render settings parameter found on node: {rop.path()}")
+
+    def get_camera(self, rop, render_settings):
+        try:
+            import hou
+
+            if not rop:
+                self.log.warning(f"Could not find node at path: {rop.path()}")
+                return ""
+
+            # "loppath" is a parm holding the LOP node path (string)
+            loppath_parm = rop.parm("loppath")
+            if not loppath_parm:
+                self.log.warning(f'Node "{rop.path()}" has no "loppath" parm')
+                return ""
+
+            lop_node_path = loppath_parm.eval()
+            if not lop_node_path:
+                self.log.warning(f'"{rop.path()}.loppath" is empty')
+                return ""
+
+            lop_node = hou.node(lop_node_path)
+            if not lop_node:
+                self.log.warning(f"Could not find LOP node at path: {lop_node_path}")
+                return ""
+
+            stage = lop_node.stage()
+            if not stage:
+                self.log.warning(f"No stage available on LOP node: {lop_node.path()}")
+                return ""
+
+            rs_prim = stage.GetPrimAtPath(render_settings)
+            if not rs_prim or not rs_prim.IsValid():
+                self.log.warning(f"Could not find RenderSettings prim at: {render_settings}")
+                return ""
+
+            # RenderSettings.camera is usually a RELATIONSHIP
+            cam_rel = rs_prim.GetRelationship("camera")
+            if cam_rel:
+                targets = cam_rel.GetTargets()
+                if targets:
+                    return str(targets[0])  # e.g. "/cameras/cam1"
+
+            # Fallback if authored as an attribute
+            cam_attr = rs_prim.GetAttribute("camera")
+            if cam_attr:
+                cam_val = cam_attr.Get()
+                return str(cam_val) if cam_val is not None else ""
+
+            raise RuntimeError(f"No camera found on RenderSettings: {render_settings}")
+
+        except RuntimeError as exc:
+            raise
 
     def _ensure_resolution(self, instance):
         """
