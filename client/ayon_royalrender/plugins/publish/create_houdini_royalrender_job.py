@@ -343,8 +343,8 @@ class CreateHoudiniRoyalRenderJob(lib.BaseCreateRoyalRenderJob):
 
             rop = hou.node(rop_path)
             return rop
-        except Exception as exc:
-            raise RuntimeError(f"Failed to get rop: {exc!r}")
+        except RuntimeError as exc:
+            raise
 
     def get_renderer(self, rop):
         """Given a USD Render ROP node, returns the renderer name."""
@@ -356,8 +356,8 @@ class CreateHoudiniRoyalRenderJob(lib.BaseCreateRoyalRenderJob):
                     return renderer_parm.evalAsString()
             raise RuntimeError(f"Failed to get renderer: {rop}")
 
-        except Exception as exc:
-            raise RuntimeError(f"Failed to get renderer: {exc!r}")
+        except RuntimeError as exc:
+            raise
 
     def get_rendersettings(self, rop):
         """
@@ -372,26 +372,17 @@ class CreateHoudiniRoyalRenderJob(lib.BaseCreateRoyalRenderJob):
 
         Returns:
             str: The LOP path to the render settings, or an empty string if not found.
-
-        Raises:
-            Exception: If the Houdini API is unavailable or the node cannot be accessed.
         """
-        try:
-            # import hou
-            if not rop:
-                self.log.warning(f"Could not find node at path: {rop.path()}")
-                return ""
+        if not rop:
+            raise RuntimeWarning(f"Could not find node at path: {rop.path()}")
 
-            rendersettings_parm = rop.parm("rendersettings")
-            if rendersettings_parm:
-                rendersettings_path = rendersettings_parm.eval()
-                self.log.info(f"Found render settings path: {rendersettings_path}")
-                return rendersettings_path
+        rendersettings_parm = rop.parm("rendersettings")
+        if rendersettings_parm:
+            rendersettings_path = rendersettings_parm.eval()
+            self.log.info(f"Found render settings path: {rendersettings_path}")
+            return rendersettings_path
 
-            raise RuntimeError(f"No render settings parameter found on node: {rop.path()}")
-
-        except Exception as exc:
-            raise RuntimeError(f"Failed to get render settings path: {exc!r}")
+        raise RuntimeError(f"No render settings parameter found on node: {rop.path()}")
 
     def get_camera(self, rop, render_settings):
         try:
@@ -442,8 +433,8 @@ class CreateHoudiniRoyalRenderJob(lib.BaseCreateRoyalRenderJob):
 
             raise RuntimeError(f"No camera found on RenderSettings: {render_settings}")
 
-        except Exception as exc:
-            raise RuntimeError(f"Failed to get camera: {exc!r}")
+        except RuntimeError as exc:
+            raise
 
     def _ensure_resolution(self, instance):
         """

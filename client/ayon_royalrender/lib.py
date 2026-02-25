@@ -245,7 +245,7 @@ class BaseCreateRoyalRenderJob(
             rrEnvFile=os.path.join(render_dir, "rrEnv.rrEnv"),
         )
 
-        self.log.info(f"RRJob: {job}")
+        self.log.debug  (f"RRJob: {job}")
         return job
 
     def update_job_with_host_specific(self, instance, job):
