@@ -59,7 +59,7 @@ class CreateHoudiniRoyalRenderJob(lib.BaseCreateRoyalRenderJob):
         instance.data["renderer"] = job.Software
 
         job.CustomRenderSettings = self.get_rendersettings(rop)
-        job.Camera = self.get_camera(instance, job.CustomRenderSettings)
+        job.Camera = self.get_camera(rop, job.CustomRenderSettings)
         job.SceneName = str(instance.data.get("ifdFile"))
 
         # Houdini version
@@ -332,6 +332,7 @@ class CreateHoudiniRoyalRenderJob(lib.BaseCreateRoyalRenderJob):
         return os.path.normpath(rrenv_path)
 
     def get_rop(self, instance):
+        """Given an instance, returns the USD Render ROP node."""
         try:
             import hou
 
@@ -346,6 +347,7 @@ class CreateHoudiniRoyalRenderJob(lib.BaseCreateRoyalRenderJob):
             raise RuntimeError(f"Failed to get rop: {exc!r}")
 
     def get_renderer(self, rop):
+        """Given a USD Render ROP node, returns the renderer name."""
         try:
             import hou
             if rop:
@@ -361,9 +363,9 @@ class CreateHoudiniRoyalRenderJob(lib.BaseCreateRoyalRenderJob):
         """
         Retrieves the LOP path to the render settings from the instance node.
 
-        This method accesses the instance node in Houdini and attempts to find
-        the render settings path from the LOP network. It looks for the render
-        settings primitive path that is configured on the USD Render ROP node.
+        This method accesses the USD Render ROP node in Houdini and attempts to find
+        the render settings path. It looks for the render
+        settings primitive path configured on the USD Render ROP node.
 
         Args:
             rop: The ROP node.
@@ -391,18 +393,12 @@ class CreateHoudiniRoyalRenderJob(lib.BaseCreateRoyalRenderJob):
         except Exception as exc:
             raise RuntimeError(f"Failed to get render settings path: {exc!r}")
 
-    def get_camera(self, instance, render_settings):
+    def get_camera(self, rop, render_settings):
         try:
             import hou
 
-            rop_path = instance.data.get("instance_node")
-            if not rop_path:
-                self.log.warning("No instance_node found in instance data")
-                return ""
-
-            rop = hou.node(rop_path)
             if not rop:
-                self.log.warning(f"Could not find node at path: {rop_path}")
+                self.log.warning(f"Could not find node at path: {rop.path()}")
                 return ""
 
             # "loppath" is a parm holding the LOP node path (string)
@@ -438,17 +434,16 @@ class CreateHoudiniRoyalRenderJob(lib.BaseCreateRoyalRenderJob):
                 if targets:
                     return str(targets[0])  # e.g. "/cameras/cam1"
 
-            # Fallback if authored as an attribute in some pipelines
+            # Fallback if authored as an attribute
             cam_attr = rs_prim.GetAttribute("camera")
             if cam_attr:
                 cam_val = cam_attr.Get()
                 return str(cam_val) if cam_val is not None else ""
 
-            return ""
+            raise RuntimeError(f"No camera found on RenderSettings: {render_settings}")
 
         except Exception as exc:
-            self.log.error(f"Failed to get camera: {exc!r}")
-            return ""
+            raise RuntimeError(f"Failed to get camera: {exc!r}")
 
     def _ensure_resolution(self, instance):
         """
