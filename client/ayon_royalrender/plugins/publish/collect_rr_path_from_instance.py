@@ -41,6 +41,12 @@ class CollectRRPathFromInstance(pyblish.api.InstancePlugin):
         selected_keys = rr_settings["selected_rr_paths"]
 
         platform = get_rr_platform()
+
+        # RoyalRender uses "osx" as platform name on macOS
+        # while AYON MultiplatformPathModel uses "darwin"
+        if platform == "osx":
+            platform = "darwin"
+
         key_to_path = {
             item["name"]: item["value"][platform]
             for item in rr_paths
