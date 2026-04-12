@@ -6,9 +6,9 @@ Provides:
     instance.data["rr_root"] (str) - root folder of RoyalRender server
 """
 import os.path
+import platform
 
 import pyblish.api
-from ayon_royalrender.rr_job import get_rr_platform
 
 
 class CollectRRPathFromInstance(pyblish.api.InstancePlugin):
@@ -40,15 +40,8 @@ class CollectRRPathFromInstance(pyblish.api.InstancePlugin):
         rr_paths = rr_settings["rr_paths"]
         selected_keys = rr_settings["selected_rr_paths"]
 
-        platform = get_rr_platform()
-
-        # RoyalRender uses "osx" as platform name on macOS
-        # while AYON MultiplatformPathModel uses "darwin"
-        if platform == "osx":
-            platform = "darwin"
-
         key_to_path = {
-            item["name"]: item["value"][platform]
+            item["name"]: item["value"][platform.system().lower()]
             for item in rr_paths
         }
 
