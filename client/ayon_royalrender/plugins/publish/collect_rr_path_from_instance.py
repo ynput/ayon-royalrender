@@ -40,8 +40,9 @@ class CollectRRPathFromInstance(pyblish.api.InstancePlugin):
         rr_paths = rr_settings["rr_paths"]
         selected_keys = rr_settings["selected_rr_paths"]
 
+        platform_key  = platform.system().lower()
         key_to_path = {
-            item["name"]: item["value"][platform.system().lower()]
+            item["name"]: item["value"][platform_key ]
             for item in rr_paths
         }
 
