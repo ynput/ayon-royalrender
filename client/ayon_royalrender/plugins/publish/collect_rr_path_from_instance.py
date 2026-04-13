@@ -6,9 +6,9 @@ Provides:
     instance.data["rr_root"] (str) - root folder of RoyalRender server
 """
 import os.path
+import platform
 
 import pyblish.api
-from ayon_royalrender.rr_job import get_rr_platform
 
 
 class CollectRRPathFromInstance(pyblish.api.InstancePlugin):
@@ -40,9 +40,9 @@ class CollectRRPathFromInstance(pyblish.api.InstancePlugin):
         rr_paths = rr_settings["rr_paths"]
         selected_keys = rr_settings["selected_rr_paths"]
 
-        platform = get_rr_platform()
+        platform_key  = platform.system().lower()
         key_to_path = {
-            item["name"]: item["value"][platform]
+            item["name"]: item["value"][platform_key]
             for item in rr_paths
         }
 
